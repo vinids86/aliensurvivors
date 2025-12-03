@@ -22,6 +22,13 @@ signal on_xp_collected(amount)
 @export var color_head: Color = Color("4fffa0")
 @export var color_damage: Color = Color("ff2a2a")
 
+# --- COMBATE E MOVIMENTO ---
+@export_group("Combat & Movement")
+# Novo: Força do Recuo (Self-Knockback) após o ataque Melee (REDUZIDO para 500.0)
+@export var self_knockback_force: float = 500.0 
+# Novo: Duração do Knockback (em segundos) (AUMENTADO para 0.15s)
+@export var self_knockback_duration: float = 0.15 
+
 # --- ANIMAÇÃO (TIMING) ---
 @export_group("Animation Timings")
 @export var anim_prep_time: float = 0.15     
@@ -29,7 +36,7 @@ signal on_xp_collected(amount)
 @export var anim_recovery_time: float = 0.3  
 
 # Estado Interno
-enum State { NORMAL, ATTACKING }
+enum State { NORMAL, ATTACKING, KNOCKED_BACK } # Adicionado KNOCKED_BACK
 var _state: State = State.NORMAL
 
 var _attack_timer: float = 0.0
@@ -44,6 +51,9 @@ var _tween_body: Tween
 var _shader_time_accum: float = 0.0
 var _current_agitation: float = 1.0
 
+# Variáveis de Knockback
+var _knockback_velocity: Vector2 = Vector2.ZERO
+
 func _ready() -> void:
 	if not stats: stats = StatsConfig.new()
 	_current_health = stats.get_stat("max_health")
@@ -53,21 +63,65 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	_time_alive += delta
 	
-	# Movimentação Base
-	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
-	var move_speed = stats.get_stat("move_speed")
-	
-	velocity = input_dir * move_speed
-	move_and_slide()
+	match _state:
+		State.NORMAL:
+			_handle_normal_movement(delta)
+		State.ATTACKING:
+			# Não processa movimento, mas move_and_slide() é necessário para colisões
+			move_and_slide() 
+		State.KNOCKED_BACK:
+			_handle_knockback_movement(delta)
+			
 	
 	# Rotação Visual (Olhar para onde anda)
-	if _state == State.NORMAL and velocity.length() > 0:
+	# A rotação SÓ é atualizada se não estiver em KNOCKED_BACK, mantendo a direção do ataque.
+	if _state != State.KNOCKED_BACK and velocity.length() > 0:
 		_visual_rotation = lerp_angle(_visual_rotation, velocity.angle(), 15 * delta)
 	
 	_update_visuals(delta)
 	_handle_combat(delta)
 
+# Novo: Tratamento de Movimento Normal
+func _handle_normal_movement(delta: float) -> void:
+	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var move_speed = stats.get_stat("move_speed")
+	
+	velocity = input_dir * move_speed
+	move_and_slide()
+
+# Novo: Tratamento de Knockback
+func _handle_knockback_movement(delta: float) -> void:
+	# Movimento puramente baseado no knockback, ignorando input
+	velocity = _knockback_velocity
+	move_and_slide()
+	
+	# Dissipa a velocidade do knockback (Simulação de atrito)
+	# Reduzindo o fator de interpolação de 10.0 para 8.0 para um decay mais suave
+	_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 8.0 * delta)
+	
+	# Sai do estado KNOCKED_BACK quando a velocidade é insignificante
+	if _knockback_velocity.length_squared() < 50:
+		_state = State.NORMAL
+		_knockback_velocity = Vector2.ZERO
+
+
 # --- API PÚBLICA ---
+
+## Novo: Aplica um knockback ao próprio player
+func apply_movement_knockback(direction: Vector2, force: float, duration: float) -> void:
+	# Define a velocidade inicial do knockback
+	_knockback_velocity = direction * force
+	_state = State.KNOCKED_BACK
+	
+	# Garante que o estado KNOCKED_BACK dure pelo menos 'duration'
+	var tw = create_tween()
+	tw.tween_interval(duration)
+	tw.tween_callback(func(): 
+		if _state == State.KNOCKED_BACK:
+			_state = State.NORMAL
+			_knockback_velocity = Vector2.ZERO
+	)
+
 
 ## Aplica dano ao jogador e processa efeitos visuais/morte.
 func take_damage(amount: float) -> void:
@@ -130,6 +184,10 @@ func _start_attack_sequence(fixed_aim_direction: Vector2) -> void:
 	
 	await get_tree().create_timer(t_prep).timeout
 	
+	# ** SELF-KNOCKBACK AQUI (Recuo do Golpe) **
+	var knockback_dir = -fixed_aim_direction # Direção oposta ao ataque
+	apply_movement_knockback(knockback_dir, self_knockback_force, self_knockback_duration)
+
 	# Execução do Ataque (Strategy Pattern)
 	current_attack_behavior.execute(self, fixed_aim_direction)
 	_trigger_flash()
@@ -143,9 +201,12 @@ func _start_attack_sequence(fixed_aim_direction: Vector2) -> void:
 		_tween_body.tween_property(sprite_ref, "scale", Vector2(0.6, 0.6), t_recover)\
 			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	
+	# Espera o fim da recuperação (recuo visual) antes de retornar ao estado NORMAL
 	await get_tree().create_timer(t_strike + t_recover).timeout
 	
-	_state = State.NORMAL
+	# Apenas retorna ao NORMAL se não estiver em KNOCKED_BACK (evita sobreposição)
+	if _state == State.ATTACKING:
+		_state = State.NORMAL
 
 func _setup_visuals() -> void:
 	if not sprite_ref: return
@@ -162,7 +223,7 @@ func _update_visuals(delta: float) -> void:
 		_visual_pivot.rotation = _visual_rotation
 	
 	# Animação Idle/Run Procedural (Wobble Effect)
-	if sprite_ref and _state == State.NORMAL:
+	if sprite_ref and (_state == State.NORMAL or _state == State.KNOCKED_BACK):
 		var base_scale = Vector2(0.6, 0.6)
 		var target_scale = base_scale
 		

@@ -41,7 +41,7 @@ func execute(target: Node2D, aim_direction: Vector2) -> void:
 			attack_duration,
 			area,
 			knockback_power,
-			Color.WHITE 
+			Color.WHITE
 		)
 			
 	# 6. Notifica o sistema de eventos
