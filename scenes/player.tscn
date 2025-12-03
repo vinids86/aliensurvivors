@@ -10,7 +10,7 @@
 script = ExtResource("2_qhqgy")
 _base_values = {
 "area": 1.0,
-"cooldown": 1.0,
+"cooldown": 0.6,
 "damage": 10.0,
 "max_health": 100.0,
 "move_speed": 220.0,

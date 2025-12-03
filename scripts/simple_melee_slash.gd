@@ -9,8 +9,9 @@ var damage: float = 10.0
 var knockback_force: float = 500.0 
 var element_color: Color = Color("4fffa0") 
 
-# Referência à Cena de Efeito (ARRASTE dissolve_shockwave.tscn AQUI NO INSPECTOR)
+# Referências Externas (Visual e Áudio)
 @export var dissolve_scene: PackedScene 
+@export var attack_sound: AudioStream # Arraste seu AudioStreamRandomizer aqui no Inspector
 
 # Geometria
 var max_radius: float = 55.0       
@@ -23,9 +24,14 @@ var _anim_width: float = 20.0
 var _anim_alpha: float = 1.0
 var _core_flash: float = 1.0       
 
-# Cache de Colisão
+# Componentes Internos
 var _collision_shape: CollisionShape2D
 var _circle_shape: CircleShape2D
+
+# --- ÁUDIO (REFATORADO) ---
+# Em vez de criar via código, esperamos que exista um nó filho na cena.
+# O nome do nó na cena deve ser "AudioStreamPlayer2D".
+@onready var _audio_player: AudioStreamPlayer2D = $AudioStreamPlayer2D
 
 func setup(dmg: float, duration: float, scale_mod: float, kb: float, col: Color) -> void:
 	damage = dmg
@@ -43,10 +49,14 @@ func _ready() -> void:
 	monitoring = false
 	body_entered.connect(_on_body_entered)
 	
+	# Colisão continua sendo criada via código pois é dinâmica/geométrica
 	_collision_shape = CollisionShape2D.new()
 	_circle_shape = CircleShape2D.new()
 	_collision_shape.shape = _circle_shape
 	add_child(_collision_shape)
+	
+	# REMOVIDO: A criação manual do AudioStreamPlayer2D.
+	# Agora confiamos no @onready var _audio_player lá em cima.
 
 func _process(_delta: float) -> void:
 	queue_redraw()
@@ -80,19 +90,25 @@ func _start_impact_animation(duration: float) -> void:
 	_core_flash = 1.0
 	_anim_alpha = 1.0
 	
+	# --- ÁUDIO ---
+	# Toca o som configurado no Inspector ou injetado pela carta
+	if _audio_player:
+		if attack_sound:
+			_audio_player.stream = attack_sound
+			_audio_player.play()
+		elif _audio_player.stream:
+			# Se nenhum som foi passado na variável, mas o nó AudioPlayer 
+			# já tem um som configurado no Editor, toca ele.
+			_audio_player.play()
+	
 	# --- VISUAL (PARTÍCULAS) ---
-	# Instancia IMEDIATAMENTE para acompanhar a animação
 	if dissolve_scene:
 		var effect = dissolve_scene.instantiate() as Node2D
 		get_tree().root.add_child(effect)
 		effect.global_position = global_position
 		
-		# Passamos todos os dados necessários para o efeito "tocar" a mesma animação que nós
 		if effect.has_method("play_expansion"):
-			# scale.x é importante para ajustar o raio final ao tamanho do ataque
 			effect.play_expansion(initial_radius, max_radius * scale.x, duration, element_color)
-	else:
-		push_warning("SimpleMeleeSlash: Cena 'dissolve_scene' não atribuída!")
 	
 	# --- LÓGICA DO CÍRCULO (Hitbox) ---
 	var tw = create_tween().set_parallel(true)

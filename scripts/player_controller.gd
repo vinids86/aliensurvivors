@@ -157,7 +157,7 @@ func _handle_combat(delta: float) -> void:
 
 	if _state == State.NORMAL and _attack_timer <= 0:
 		# Suporte para Mouse e Teclado/Controle
-		if Input.is_action_pressed("ui_accept") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		if Input.is_action_pressed("ui_accept") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_action_pressed("attack"):
 			if current_attack_behavior:
 				var attack_dir = Vector2.RIGHT.rotated(_visual_rotation)
 				_start_attack_sequence(attack_dir)
