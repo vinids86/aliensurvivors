@@ -1,0 +1,75 @@
+[gd_scene load_steps=7 format=3 uid="uid://de6v0qxua2cuo"]
+
+[ext_resource type="Script" uid="uid://cala3b8irouy" path="res://scripts/basic_enemy.gd" id="1_md22f"]
+[ext_resource type="Texture2D" uid="uid://cl5c57oibjf8x" path="res://icon.svg" id="2_fn5nn"]
+
+[sub_resource type="Shader" id="Shader_cuegt"]
+code = "shader_type canvas_item;
+
+uniform vec4 base_color : source_color;
+// Substituímos 'agitation' e 'TIME' por um tempo controlado manualmente pelo script
+uniform float custom_time = 0.0; 
+
+void fragment() {
+	vec2 uv = UV;
+	vec2 center = vec2(0.5);
+	float dist = distance(uv, center);
+	
+	// Efeito: Plasma Fervendo (Restaurado com custom_time)
+	// Mantivemos a matemática original visual, só trocando a fonte de tempo
+	float plasma1 = sin(uv.x * 12.0 + custom_time * 3.0 + uv.y * 5.0);
+	float plasma2 = sin(uv.y * 12.0 - custom_time * 4.0 + uv.x * 5.0);
+	float activity = (plasma1 + plasma2) * 0.5;
+	
+	vec4 color = base_color;
+	
+	// Adiciona manchas brilhantes
+	color.rgb += vec3(smoothstep(0.4, 0.9, activity) * 0.3);
+	
+	// Brilho central
+	float core_glow = 1.0 - smoothstep(0.0, 0.6, dist);
+	color.rgb += vec3(core_glow * 0.4);
+
+	// RECORTE IRREGULAR (Corrosão da Borda)
+	// Usamos a 'activity' para \"comer\" as bordas de forma dinâmica
+	float edge_noise = activity * 0.1; 
+	
+	// Borda muito mais suave (0.25 + noise) para parecer gasoso/instável
+	float alpha = smoothstep(0.5, 0.25 + edge_noise, dist);
+
+	COLOR = color;
+	COLOR.a *= alpha;
+}"
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_wm70f"]
+shader = SubResource("Shader_cuegt")
+shader_parameter/base_color = Color(1, 0, 0.333333, 1)
+shader_parameter/custom_time = 0.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_ve544"]
+radius = 20.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_qhw0p"]
+radius = 22.0
+
+[node name="BasicEnemy" type="CharacterBody2D" node_paths=PackedStringArray("visual_sprite") groups=["enemy"]]
+collision_layer = 2
+collision_mask = 9
+script = ExtResource("1_md22f")
+visual_sprite = NodePath("Visuals/Sprite2D")
+
+[node name="Visuals" type="Node2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="Visuals"]
+material = SubResource("ShaderMaterial_wm70f")
+scale = Vector2(0.35, 0.35)
+texture = ExtResource("2_fn5nn")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_ve544")
+
+[node name="HitboxArea" type="Area2D" parent="."]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxArea"]
+shape = SubResource("CircleShape2D_qhw0p")
