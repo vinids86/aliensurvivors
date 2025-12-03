@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MeleeAttackCard" load_steps=3 format=3 uid="uid://bt6p848ahoanw"]
+
+[ext_resource type="Script" uid="uid://do6a3tsc5rf8" path="res://scripts/melee_attack_card.gd" id="1_s7vrs"]
+[ext_resource type="PackedScene" uid="uid://bt2laudafly0u" path="res://scenes/slash_basic.tscn" id="2_df4nf"]
+
+[resource]
+script = ExtResource("1_s7vrs")
+slash_scene = ExtResource("2_df4nf")
+offset_distance = 5.0
+attack_duration = 0.5
+knockback_power = 400.0
+base_cooldown_override = -1.0
+title = "New Upgrade"
+description = "Description here"
+metadata/_custom_type_script = "uid://do6a3tsc5rf8"
