@@ -1,0 +1,17 @@
+[gd_scene load_steps=2 format=3 uid="uid://c4yb87qyaut3j"]
+
+[ext_resource type="Script" uid="uid://62ymoni81rnv" path="res://scripts/ambient_dust.gd" id="1_d5t72"]
+
+[node name="AmbientDust" type="CPUParticles2D"]
+amount = 60
+lifetime = 5.0
+preprocess = 5.0
+randomness = 0.5
+lifetime_randomness = 0.3
+emission_shape = 3
+emission_rect_extents = Vector2(500, 300)
+gravity = Vector2(0, 0)
+scale_amount_min = 2.0
+scale_amount_max = 4.0
+color = Color(1, 1, 1, 0.156863)
+script = ExtResource("1_d5t72")

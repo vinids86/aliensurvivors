@@ -1,0 +1,65 @@
+[gd_scene load_steps=7 format=3 uid="uid://yjjasbrhhsqh"]
+
+[ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
+[ext_resource type="Shader" uid="uid://cetr7au44b3ni" path="res://shadders/infinite_grid.gdshader" id="2_oo155"]
+[ext_resource type="PackedScene" uid="uid://calshek1ah73r" path="res://scenes/player.tscn" id="3_eaq8r"]
+[ext_resource type="Script" uid="uid://dnpqog8vvkmtw" path="res://scripts/game_camera.gd" id="4_oo155"]
+[ext_resource type="PackedScene" uid="uid://c4yb87qyaut3j" path="res://scenes/ambient_dust.tscn" id="5_eaq8r"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ternb"]
+shader = ExtResource("2_oo155")
+shader_parameter/color_deep = Color(0.02, 0.02, 0.1, 1)
+shader_parameter/color_shallow = Color(0, 0.2, 0.5, 1)
+shader_parameter/color_foam = Color(0.1, 0.4, 0.6, 1)
+shader_parameter/time_scale = 0.5
+shader_parameter/distortion_strength = 0.05
+shader_parameter/tile_scale = 4.0
+
+[node name="GameManager" type="Node"]
+script = ExtResource("1_udu3i")
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="ParallaxBackground" type="ParallaxBackground" parent="World"]
+
+[node name="ParallaxLayer" type="ParallaxLayer" parent="World/ParallaxBackground"]
+motion_mirroring = Vector2(2000, 2000)
+
+[node name="ColorRect" type="ColorRect" parent="World/ParallaxBackground/ParallaxLayer"]
+material = SubResource("ShaderMaterial_ternb")
+offset_right = 2000.0
+offset_bottom = 2000.0
+
+[node name="ProjectilesContainer" type="Node2D" parent="World"]
+
+[node name="EnemiesContainer" type="Node2D" parent="World"]
+
+[node name="LootContainer" type="Node2D" parent="World"]
+
+[node name="Player" parent="World" instance=ExtResource("3_eaq8r")]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+script = ExtResource("4_oo155")
+
+[node name="AmbientDust" parent="Camera2D" instance=ExtResource("5_eaq8r")]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Control" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HealthBar" type="ProgressBar" parent="HUD/Control"]
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 27.0
+
+[node name="LevelLabel" type="Label" parent="HUD/Control"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
