@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://f6nw2stv2vqx"]
+
+[ext_resource type="Script" uid="uid://d1h5cupmlx1to" path="res://scripts/dissolve_shockwave.gd" id="1_y80l5"]
+
+[node name="DissolveShockwave" type="Node2D"]
+script = ExtResource("1_y80l5")
