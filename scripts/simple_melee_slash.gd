@@ -1,26 +1,27 @@
 class_name SimpleMeleeSlash extends Area2D
 
-## Sistema de Ataque: Bubble Burst (FINAL - Posição Corrigida)
-## Gera uma explosão de energia maleável usando desenho procedural direto.
-## A explosão ocorre na posição exata fornecida pelo MeleeAttackCard, seguindo a mira do Player.
+## Visual: "Sonic Boom" (Impacto Geométrico Puro)
+## Um círculo perfeito que expande violentamente.
+## Foca em contraste (Branco -> Cor), velocidade e clareza da hitbox.
 
 # --- CONFIGURAÇÃO ---
 var damage: float = 10.0
-var knockback_force: float = 600.0
+var knockback_force: float = 500.0 # Aumentei um pouco para combinar com o impacto visual
 var element_color: Color = Color("4fffa0") # Verde Neon
 
-# Parâmetros Geométricos
-var max_radius: float = 60.0       # Tamanho final da explosão
-var burst_scale: float = 1.8       # Crescimento extra no estouro
+# Geometria
+var max_radius: float = 55.0       
+var initial_radius: float = 5.0    # Não começa do zero absoluto para ter "corpo" no frame 1
 
-# Variáveis de Animação (Controladas via Tween)
-var _anim_radius_scale: float = 0.0 
-var _anim_hole_size: float = 0.0    
-var _anim_alpha: float = 1.0        
+# Variáveis de Animação
+var _current_radius: float = 0.0
+var _anim_width: float = 0.0       # Espessura da onda de choque
+var _anim_alpha: float = 1.0
+var _core_flash: float = 1.0       # Intensidade do centro branco
 
 # Cache de Colisão
-var _collision_poly: CollisionPolygon2D
-var _last_poly_points: PackedVector2Array
+var _collision_shape: CollisionShape2D
+var _circle_shape: CircleShape2D
 
 func setup(dmg: float, duration: float, scale_mod: float, kb: float, col: Color) -> void:
 	damage = dmg
@@ -28,96 +29,74 @@ func setup(dmg: float, duration: float, scale_mod: float, kb: float, col: Color)
 	element_color = col
 	
 	scale = Vector2.ONE * scale_mod
-	_start_bubble_animation(duration)
+	_start_impact_animation(duration)
 
 func _ready() -> void:
 	monitoring = false
 	body_entered.connect(_on_body_entered)
 	
-	# Cria Colisão (agora via código)
-	_collision_poly = CollisionPolygon2D.new()
-	_collision_poly.build_mode = CollisionPolygon2D.BUILD_SOLIDS
-	add_child(_collision_poly)
-	
+	_collision_shape = CollisionShape2D.new()
+	_circle_shape = CircleShape2D.new()
+	_collision_shape.shape = _circle_shape
+	add_child(_collision_shape)
+
 func _process(_delta: float) -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var current_r = max_radius * _anim_radius_scale
-	if current_r <= 1.0: return
+	if _current_radius <= 1.0: return
 
-	# 1. Aura Externa (Brilho difuso)
-	var color_aura = element_color
-	color_aura.a = 0.2 * _anim_alpha
-	draw_circle(Vector2.ZERO, current_r * 1.2, color_aura)
+	# 1. Onda de Choque (Borda Grossa)
+	# Desenhamos um arco grosso que representa a força do impacto
+	var color_wave = element_color
+	color_wave.a = 0.8 * _anim_alpha
 	
-	# 2. Corpo Principal (Anel/Donut)
-	var color_body = element_color
-	color_body.a = 0.7 * _anim_alpha
-	_draw_donut(current_r, _anim_hole_size, color_body)
+	if _anim_width > 0.5:
+		draw_arc(Vector2.ZERO, _current_radius, 0, TAU, 64, color_wave, _anim_width)
 	
-	# 3. Highlight Borda (Corte mais nítido)
-	if _anim_alpha > 0.05:
-		var color_edge = Color.WHITE
-		color_edge.a = 0.9 * _anim_alpha
-		draw_arc(Vector2.ZERO, current_r, 0, TAU, 32, color_edge, 2.0)
+	# 2. Flash Central (Impacto Branco)
+	# Nos primeiros frames, desenha um círculo sólido branco que desvanece rápido.
+	# Isso dá a sensação de "energia concentrada" liberada.
+	if _core_flash > 0.01:
+		var color_core = Color.WHITE
+		color_core.a = _core_flash * 0.9
+		# O núcleo é um pouco menor que a onda principal
+		draw_circle(Vector2.ZERO, _current_radius * 0.85, color_core)
 
-	_update_collision(current_r, _anim_hole_size)
+	_update_collision(_current_radius)
 
-# Função para desenhar Círculo com Buraco (Donut)
-func _draw_donut(outer_radius: float, hole_pct: float, color: Color) -> void:
-	var segments = 32
-	var inner_radius = outer_radius * hole_pct
-	
-	if inner_radius >= outer_radius - 1.0: return
+func _update_collision(radius: float) -> void:
+	if _circle_shape:
+		_circle_shape.radius = radius
 
-	var points_out = PackedVector2Array()
-	var points_in = PackedVector2Array()
-	
-	for i in range(segments + 1):
-		var angle = (float(i) / segments) * TAU
-		var dir = Vector2(cos(angle), sin(angle))
-		
-		points_out.append(dir * outer_radius)
-		points_in.append(dir * inner_radius)
-	
-	var poly = points_out.duplicate()
-	points_in.reverse()
-	poly.append_array(points_in)
-		
-	draw_colored_polygon(poly, color)
-	_last_poly_points = poly
-
-func _update_collision(current_r: float, hole_pct: float) -> void:
-	if _last_poly_points.is_empty(): return
-	if _collision_poly:
-		_collision_poly.polygon = _last_poly_points
-
-func _start_bubble_animation(duration: float) -> void:
+func _start_impact_animation(duration: float) -> void:
 	monitoring = true
-	
-	_anim_radius_scale = 0.0
-	_anim_hole_size = 0.0
+	_current_radius = initial_radius
+	_anim_width = 20.0 # Começa bem grosso
+	_core_flash = 1.0
 	_anim_alpha = 1.0
 	
 	var tw = create_tween().set_parallel(true)
 	
-	# Tempo total é o tempo de explosão
-	var forward_move = Vector2.RIGHT.rotated(rotation) * 20.0
-	tw.tween_property(self, "position", position + forward_move, duration)
-	# 1. Estouro Violento (Scale 0.0 -> Burst Scale)
-	tw.tween_property(self, "_anim_radius_scale", burst_scale, duration)\
-		.set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	# 1. Expansão Explosiva (Radius)
+	# EASE_OUT_QUART é muito rápido no início e freia bruscamente -> Sensação de Impacto
+	tw.tween_property(self, "_current_radius", max_radius, duration)\
+		.set_trans(Tween.TRANS_QUART).set_ease(Tween.EASE_OUT)
 		
-	# 2. Abertura do Buraco (Com delay, começa um pouco depois)
-	tw.tween_property(self, "_anim_hole_size", 1.0, duration * 0.75)\
-		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)\
-		.set_delay(duration * 0.25)
-		
-	# 3. Sumir (Fade Out)
+	# 2. Afinamento da Onda (Width)
+	# A onda começa grossa e fica fina à medida que dissipa energia
+	tw.tween_property(self, "_anim_width", 2.0, duration * 0.8)\
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	
+	# 3. Flash Branco (Core)
+	# Dura pouquíssimo tempo (apenas o "pop" inicial)
+	tw.tween_property(self, "_core_flash", 0.0, duration * 0.3)\
+		.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+
+	# 4. Fade Out Geral
 	tw.tween_property(self, "_anim_alpha", 0.0, duration * 0.4)\
-		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)\
-		.set_delay(duration * 0.6) # Começa a sumir no final
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)\
+		.set_delay(duration * 0.6)
 	
 	await tw.finished
 	queue_free()

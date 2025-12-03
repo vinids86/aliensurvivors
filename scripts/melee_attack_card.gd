@@ -6,47 +6,45 @@ class_name MeleeAttackCard extends AttackBehaviorCard
 @export var attack_duration: float = 0.25
 @export var knockback_power: float = 400.0
 
-# CORREÇÃO: O tipo do argumento deve ser Node2D para bater com a classe pai.
-# Renomeamos para 'target' para fazer o cast seguro logo abaixo.
 func execute(target: Node2D, aim_direction: Vector2) -> void:
 	var player = target as PlayerController
 	if not player: 
-		return # Segurança caso seja chamado por algo que não é o Player
+		return 
 
 	if not slash_scene:
 		push_warning("MeleeAttackCard: Nenhuma cena de Slash atribuída!")
 		return
 
-	# 1. Busca estatísticas
+	# 1. Busca estatísticas dinâmicas do Player
 	var dmg = player.stats.get_stat("damage", 10.0)
 	var area = player.stats.get_stat("area", 1.0)
 	
 	# 2. Instancia o Slash
 	var slash = slash_scene.instantiate()
 	
-	# IMPORTANTE: Adiciona como FILHO do Player para girar e andar junto com ele
-	player.add_child(slash)
+	# 3. Adiciona à raiz da cena (Root)
+	# O ataque é adicionado à raiz da árvore para ser independente do transform do Player.
+	# Isso permite que o efeito permaneça no local do golpe mesmo se o player se mover.
+	player.get_tree().root.add_child(slash)
 	
-	# 3. Posiciona na frente
-	# Como é filho, a posição (0,0) é o centro do player.
-	# Movemos apenas no eixo X local (frente) se o Player já estiver rotacionado,
-	# mas seu player rotaciona o _visual_pivot, não o nó raiz necessariamente.
-	# Se o PlayerController raiz NÃO gira, usamos aim_direction para posicionar.
+	# 4. Posicionamento Global
+	# Calcula a posição de spawn no mundo baseada na posição atual do player + offset.
+	var spawn_position = player.global_position + (aim_direction * offset_distance)
 	
-	slash.position = aim_direction * offset_distance
+	slash.global_position = spawn_position
 	slash.rotation = aim_direction.angle()
 	
-	# 4. Configura
+	# 5. Configura parâmetros de combate (Dano, Tamanho, Knockback)
 	if slash.has_method("setup"):
 		slash.setup(
 			dmg,
 			attack_duration,
 			area,
 			knockback_power,
-			Color.WHITE # Usa a cor do player
+			Color.WHITE 
 		)
 			
-	# 5. Emite sinal (Para efeitos como Rastro de Fogo funcionarem aqui também)
+	# 6. Notifica o sistema de eventos
 	player.on_attack_triggered.emit({
 		"source": player,
 		"slash_object": slash,
