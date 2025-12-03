@@ -52,11 +52,11 @@ radius = 20.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_qhw0p"]
 radius = 22.0
 
-[node name="BasicEnemy" type="CharacterBody2D" node_paths=PackedStringArray("visual_sprite") groups=["enemy"]]
+[node name="BasicEnemy" type="CharacterBody2D" groups=["enemy"]]
 collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_md22f")
-visual_sprite = NodePath("Visuals/Sprite2D")
+max_health = 10.0
 
 [node name="Visuals" type="Node2D" parent="."]
 

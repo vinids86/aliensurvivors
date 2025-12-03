@@ -1,23 +1,31 @@
 class_name BasicEnemy extends CharacterBody2D
 
 ## Inimigo "Kamikaze" Básico.
-## Comportamento: Persegue o player cegamente.
-## Arquitetura: Usa CharacterBody2D para física (ser empurrado) e Area2D (filha) para causar dano.
+## Comportamento: Persegue, Ataca e Recua no impacto (Bounce).
+## Arquitetura: CharacterBody2D com Area2D para trigger de ataque.
 
 # --- CONFIGURAÇÃO ---
+@export_group("Stats")
 @export var max_health: float = 30.0
 @export var damage: float = 5.0
 @export var move_speed: float = 120.0
 @export var xp_value: float = 10.0
 
+@export_group("Combat")
+@export var attack_cooldown: float = 1.0
+@export var push_force_on_player: float = 400.0  # Força aplicada no Player
+@export var recoil_force: float = 300.0          # Força aplicada em si mesmo (Recuo)
+
 # --- REFERÊNCIAS ---
-@export var visual_sprite: Sprite2D # Arraste o Sprite aqui no Inspector
-@onready var hitbox: Area2D = $HitboxArea # Certifique-se de criar este nó na cena!
+@export_group("References")
+@export var visual_sprite: Sprite2D 
+@onready var hitbox: Area2D = $HitboxArea 
 
 # Estado Interno
 var _current_health: float
 var _player_ref: PlayerController
 var _knockback_velocity: Vector2 = Vector2.ZERO
+var _current_attack_cooldown: float = 0.0 
 
 # Juice
 var _material_ref: ShaderMaterial
@@ -26,33 +34,36 @@ var _original_color: Color
 func _ready() -> void:
 	_current_health = max_health
 	
-	# Busca o player no grupo (Desacoplado)
+	# Pop-in Effect
+	scale = Vector2.ZERO
+	var tw = create_tween()
+	tw.tween_property(self, "scale", Vector2.ONE, 0.4)\
+		.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	
 	var players = get_tree().get_nodes_in_group("player")
 	if players.size() > 0:
 		_player_ref = players[0] as PlayerController
 	
-	# Configuração do Shader (Flash)
 	if visual_sprite and visual_sprite.material:
-		# Duplica o material para que o flash de um não afete todos (Unique)
 		_material_ref = visual_sprite.material.duplicate()
 		visual_sprite.material = _material_ref
-		# Salva a cor original configurada no inspector do shader
 		_original_color = _material_ref.get_shader_parameter("base_color")
-	
-	# Conecta o Hitbox de Dano (Se existir)
-	if hitbox:
-		# Usamos o sinal body_entered da Area2D para detectar o player
-		hitbox.body_entered.connect(_on_hitbox_body_entered)
 
 func _physics_process(delta: float) -> void:
-	# 1. Movimento de Perseguição
+	# 1. Movimento e Decaimento de Knockback
+	_handle_movement(delta)
+	
+	# 2. Lógica de Ataque
+	_handle_attack_logic(delta)
+
+func _handle_movement(delta: float) -> void:
 	if _player_ref:
 		var direction = (_player_ref.global_position - global_position).normalized()
 		
-		# Se estiver sob knockback forte, o controle de movimento é reduzido
+		# Se o knockback for forte, perde controle do movimento (fica atordoado)
 		var control_factor = 1.0
 		if _knockback_velocity.length() > 50.0:
-			control_factor = 0.2 # Perde controle enquanto voa
+			control_factor = 0.1 # Quase zero controle durante o recuo
 			
 		velocity = (direction * move_speed * control_factor) + _knockback_velocity
 	else:
@@ -60,32 +71,48 @@ func _physics_process(delta: float) -> void:
 	
 	move_and_slide()
 	
-	# 2. Decaimento do Knockback (Atrito)
+	# Decaimento suave da inércia (Friction)
 	if _knockback_velocity.length_squared() > 10.0:
 		_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 8.0 * delta)
-	else:
-		_knockback_velocity = Vector2.ZERO
-		
-	# 3. Orientação Visual (Squash simples na direção do movimento)
+	
 	if visual_sprite and velocity.length() > 10.0:
-		var look_angle = velocity.angle()
-		visual_sprite.rotation = lerp_angle(visual_sprite.rotation, look_angle, 10.0 * delta)
+		visual_sprite.rotation = lerp_angle(visual_sprite.rotation, velocity.angle(), 10.0 * delta)
 
-# --- INTERFACE DE DANO (Chamada pelo Player) ---
+func _handle_attack_logic(delta: float) -> void:
+	if _current_attack_cooldown > 0:
+		_current_attack_cooldown -= delta
+		return
+
+	if hitbox:
+		var overlapping_bodies = hitbox.get_overlapping_bodies()
+		for body in overlapping_bodies:
+			if body is PlayerController:
+				_execute_attack(body)
+				break 
+
+func _execute_attack(target: PlayerController) -> void:
+	# 1. Causa dano e empurra o Player
+	target.take_damage(damage, self, push_force_on_player)
+	
+	# 2. Empurra a SI MESMO para trás (Recuo/Bounce)
+	# A direção é: Posição do Inimigo - Posição do Player (vetor saindo do player)
+	var recoil_dir = (global_position - target.global_position).normalized()
+	apply_knockback(recoil_dir * recoil_force)
+	
+	# 3. Reinicia cooldown
+	_current_attack_cooldown = attack_cooldown
+
+# --- INTERFACE PÚBLICA ---
 
 func take_damage(amount: float) -> void:
 	_current_health -= amount
 	_flash_hit()
-	
-	# Som de impacto simples (opcional por enquanto)
-	
 	if _current_health <= 0:
 		die()
 
+## Aplica uma força física externa (ex: golpe do player ou seu próprio recuo)
 func apply_knockback(force: Vector2) -> void:
 	_knockback_velocity = force
-
-# --- SISTEMAS INTERNOS ---
 
 func _flash_hit() -> void:
 	if _material_ref:
@@ -97,19 +124,6 @@ func _flash_hit() -> void:
 		)
 
 func die() -> void:
-	# Aqui futuramente spawnaremos XP e particulas de explosão
-	# Por enquanto, apenas some.
-	
-	# Exemplo de chamada de evento global (se tivesse GameManager):
-	# GameManager.on_enemy_killed.emit(xp_value)
-	
-	# Se o player tiver lógica de XP direta:
 	if _player_ref:
 		_player_ref.add_xp(xp_value)
-		
 	queue_free()
-
-func _on_hitbox_body_entered(body: Node2D) -> void:
-	# A Hitbox do inimigo tocou em algo. É o player?
-	if body is PlayerController:
-		body.take_damage(damage)

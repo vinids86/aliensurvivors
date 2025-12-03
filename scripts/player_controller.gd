@@ -2,7 +2,6 @@ class_name PlayerController extends CharacterBody2D
 
 ## Controlador principal da entidade Jogador.
 ## Gerencia Input, Máquina de Estados (Normal/Ataque), movimentação física e renderização visual.
-## Utiliza uma arquitetura baseada em Recursos (StatsConfig) para facilitar upgrades.
 
 # --- ARQUITETURA ---
 @export_group("Architecture")
@@ -22,11 +21,15 @@ signal on_xp_collected(amount)
 @export var color_head: Color = Color("4fffa0")
 @export var color_damage: Color = Color("ff2a2a")
 
+# --- ÁUDIO (AGORA NO EDITOR) ---
+@export_group("Audio")
+# Referência direta ao nó na cena. Muito mais transparente.
+@export var audio_player: AudioStreamPlayer2D 
+@export var sfx_hurt: AudioStream # O som de dor
+
 # --- COMBATE E MOVIMENTO ---
 @export_group("Combat & Movement")
-# Novo: Força do Recuo (Self-Knockback) após o ataque Melee (REDUZIDO para 500.0)
 @export var self_knockback_force: float = 500.0 
-# Novo: Duração do Knockback (em segundos) (AUMENTADO para 0.15s)
 @export var self_knockback_duration: float = 0.15 
 
 # --- ANIMAÇÃO (TIMING) ---
@@ -36,7 +39,7 @@ signal on_xp_collected(amount)
 @export var anim_recovery_time: float = 0.3  
 
 # Estado Interno
-enum State { NORMAL, ATTACKING, KNOCKED_BACK } # Adicionado KNOCKED_BACK
+enum State { NORMAL, ATTACKING, KNOCKED_BACK }
 var _state: State = State.NORMAL
 
 var _attack_timer: float = 0.0
@@ -58,7 +61,12 @@ func _ready() -> void:
 	if not stats: stats = StatsConfig.new()
 	_current_health = stats.get_stat("max_health")
 	_time_alive = 0.0
+	
 	_setup_visuals()
+	
+	# Validação Crítica: Se esqueceu de colocar no editor, avisa!
+	if not audio_player:
+		push_warning("PlayerController: 'Audio Player' não atribuído! O som não funcionará.")
 
 func _physics_process(delta: float) -> void:
 	_time_alive += delta
@@ -67,14 +75,10 @@ func _physics_process(delta: float) -> void:
 		State.NORMAL:
 			_handle_normal_movement(delta)
 		State.ATTACKING:
-			# Não processa movimento, mas move_and_slide() é necessário para colisões
 			move_and_slide() 
 		State.KNOCKED_BACK:
 			_handle_knockback_movement(delta)
 			
-	
-	# Rotação Visual (Olhar para onde anda)
-	# A rotação SÓ é atualizada se não estiver em KNOCKED_BACK, mantendo a direção do ataque.
 	if _state != State.KNOCKED_BACK and velocity.length() > 0:
 		_visual_rotation = lerp_angle(_visual_rotation, velocity.angle(), 15 * delta)
 	
@@ -91,29 +95,20 @@ func _handle_normal_movement(delta: float) -> void:
 
 # Novo: Tratamento de Knockback
 func _handle_knockback_movement(delta: float) -> void:
-	# Movimento puramente baseado no knockback, ignorando input
 	velocity = _knockback_velocity
 	move_and_slide()
-	
-	# Dissipa a velocidade do knockback (Simulação de atrito)
-	# Reduzindo o fator de interpolação de 10.0 para 8.0 para um decay mais suave
 	_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 8.0 * delta)
 	
-	# Sai do estado KNOCKED_BACK quando a velocidade é insignificante
 	if _knockback_velocity.length_squared() < 50:
 		_state = State.NORMAL
 		_knockback_velocity = Vector2.ZERO
 
-
 # --- API PÚBLICA ---
 
-## Novo: Aplica um knockback ao próprio player
 func apply_movement_knockback(direction: Vector2, force: float, duration: float) -> void:
-	# Define a velocidade inicial do knockback
 	_knockback_velocity = direction * force
 	_state = State.KNOCKED_BACK
 	
-	# Garante que o estado KNOCKED_BACK dure pelo menos 'duration'
 	var tw = create_tween()
 	tw.tween_interval(duration)
 	tw.tween_callback(func(): 
@@ -122,33 +117,52 @@ func apply_movement_knockback(direction: Vector2, force: float, duration: float)
 			_knockback_velocity = Vector2.ZERO
 	)
 
-
-## Aplica dano ao jogador e processa efeitos visuais/morte.
-func take_damage(amount: float) -> void:
+## Atualizado: Agora aceita fonte do dano e força de knockback externa
+func take_damage(amount: float, source_node: Node2D = null, knockback_force: float = 0.0) -> void:
 	_current_health -= amount
-	on_hit_received.emit(null, amount)
+	on_hit_received.emit(source_node, amount)
 	
+	# Feedback Físico (Knockback Recebido)
+	if source_node and knockback_force > 0:
+		var knock_dir = (global_position - source_node.global_position).normalized()
+		# Usamos 0.2s como duração padrão para impactos recebidos
+		apply_movement_knockback(knock_dir, knockback_force, 0.2)
+	
+	# Feedback Visual
 	if _shader_material:
 		_shader_material.set_shader_parameter("base_color", color_damage)
 		var tw = create_tween()
 		tw.tween_interval(0.1)
 		tw.tween_callback(func(): _shader_material.set_shader_parameter("base_color", color_head))
 	
+	# Feedback Sonoro (Usando o nó do editor)
+	if audio_player and sfx_hurt:
+		audio_player.pitch_scale = randf_range(0.95, 1.05)
+		audio_player.stream = sfx_hurt
+		audio_player.play()
+	
 	if _current_health <= 0:
 		_die()
 
-## Adiciona experiência e notifica o sistema de progressão.
 func add_xp(amount: float) -> void:
 	on_xp_collected.emit(amount)
 
-## Restaura vida até o limite máximo definido nos stats.
 func heal(amount: float) -> void:
 	_current_health = min(_current_health + amount, stats.get_stat("max_health"))
 
 # --- SISTEMAS INTERNOS ---
 
+func _setup_visuals() -> void:
+	if not sprite_ref: return
+	_visual_pivot = sprite_ref.get_parent()
+
+	if body_shader:
+		_shader_material = ShaderMaterial.new()
+		_shader_material.shader = body_shader
+		_shader_material.set_shader_parameter("base_color", color_head)
+		sprite_ref.material = _shader_material
+
 func _die() -> void:
-	# Lógica de Game Over será implementada pelo GameManager
 	set_physics_process(false)
 
 func _handle_combat(delta: float) -> void:
@@ -156,7 +170,6 @@ func _handle_combat(delta: float) -> void:
 		_attack_timer -= delta
 
 	if _state == State.NORMAL and _attack_timer <= 0:
-		# Suporte para Mouse e Teclado/Controle
 		if Input.is_action_pressed("ui_accept") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_action_pressed("attack"):
 			if current_attack_behavior:
 				var attack_dir = Vector2.RIGHT.rotated(_visual_rotation)
@@ -175,7 +188,6 @@ func _start_attack_sequence(fixed_aim_direction: Vector2) -> void:
 	var t_strike = max(cd_total * 0.15, 0.03) 
 	var t_recover = max(cd_total * 0.4, 0.05) 
 	
-	# Animação Procedural: Preparação (Squash)
 	if sprite_ref:
 		if _tween_body: _tween_body.kill()
 		_tween_body = create_tween()
@@ -184,15 +196,12 @@ func _start_attack_sequence(fixed_aim_direction: Vector2) -> void:
 	
 	await get_tree().create_timer(t_prep).timeout
 	
-	# ** SELF-KNOCKBACK AQUI (Recuo do Golpe) **
-	var knockback_dir = -fixed_aim_direction # Direção oposta ao ataque
+	var knockback_dir = -fixed_aim_direction
 	apply_movement_knockback(knockback_dir, self_knockback_force, self_knockback_duration)
 
-	# Execução do Ataque (Strategy Pattern)
 	current_attack_behavior.execute(self, fixed_aim_direction)
 	_trigger_flash()
 	
-	# Animação Procedural: Golpe e Recuperação (Stretch -> Normal)
 	if sprite_ref:
 		if _tween_body: _tween_body.kill()
 		_tween_body = create_tween()
@@ -201,28 +210,15 @@ func _start_attack_sequence(fixed_aim_direction: Vector2) -> void:
 		_tween_body.tween_property(sprite_ref, "scale", Vector2(0.6, 0.6), t_recover)\
 			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 	
-	# Espera o fim da recuperação (recuo visual) antes de retornar ao estado NORMAL
 	await get_tree().create_timer(t_strike + t_recover).timeout
 	
-	# Apenas retorna ao NORMAL se não estiver em KNOCKED_BACK (evita sobreposição)
 	if _state == State.ATTACKING:
 		_state = State.NORMAL
-
-func _setup_visuals() -> void:
-	if not sprite_ref: return
-	_visual_pivot = sprite_ref.get_parent()
-
-	if body_shader:
-		_shader_material = ShaderMaterial.new()
-		_shader_material.shader = body_shader
-		_shader_material.set_shader_parameter("base_color", color_head)
-		sprite_ref.material = _shader_material
 
 func _update_visuals(delta: float) -> void:
 	if _visual_pivot:
 		_visual_pivot.rotation = _visual_rotation
 	
-	# Animação Idle/Run Procedural (Wobble Effect)
 	if sprite_ref and (_state == State.NORMAL or _state == State.KNOCKED_BACK):
 		var base_scale = Vector2(0.6, 0.6)
 		var target_scale = base_scale
@@ -240,7 +236,6 @@ func _update_visuals(delta: float) -> void:
 		
 		sprite_ref.scale = sprite_ref.scale.lerp(target_scale, 10.0 * delta)
 
-	# Atualização Manual do Shader (Time Sync)
 	if _shader_material:
 		var target_speed = 2.0 if _state == State.ATTACKING else 1.0
 		_current_agitation = lerp(_current_agitation, target_speed, 5.0 * delta)
