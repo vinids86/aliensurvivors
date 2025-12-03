@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_s7vrs")
 slash_scene = ExtResource("2_df4nf")
-offset_distance = 5.0
-attack_duration = 0.5
+offset_distance = 60.0
+attack_duration = 0.8
 knockback_power = 400.0
 base_cooldown_override = -1.0
 title = "New Upgrade"
