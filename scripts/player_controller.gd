@@ -26,11 +26,15 @@ signal on_xp_collected(amount)
 @export var audio_player: AudioStreamPlayer2D 
 @export var sfx_hurt: AudioStream
 
+# --- PROGRESSÃO (XP) ---
+@export_group("Progression")
+@export var xp_growth_multiplier: float = 1.1 # +10% por nível (Curva suave)
+@export var xp_flat_increase: float = 25.0    # +25 XP fixo por nível (Base sólida)
+
 # --- COMBATE E COLETA ---
 @export_group("Combat & Movement")
 @export var self_knockback_force: float = 500.0 
 @export var self_knockback_duration: float = 0.15 
-# Referência à área de coleta para atualizar o tamanho dinamicamente
 @export var magnet_area_shape: CollisionShape2D 
 
 # --- ANIMAÇÃO (TIMING) ---
@@ -64,7 +68,7 @@ func _ready() -> void:
 	_time_alive = 0.0
 	
 	_setup_visuals()
-	_update_magnet_radius() # Configura o tamanho inicial do imã
+	_update_magnet_radius() 
 	
 	if not audio_player:
 		push_warning("PlayerController: 'Audio Player' não atribuído!")
@@ -88,15 +92,12 @@ func _physics_process(delta: float) -> void:
 
 # --- MAGNET & XP ---
 
-# Chamado sempre que ganhamos um upgrade de 'pickup_range'
 func _update_magnet_radius() -> void:
 	if magnet_area_shape and magnet_area_shape.shape is CircleShape2D:
 		var range_val = stats.get_stat("pickup_range", 100.0)
 		magnet_area_shape.shape.radius = range_val
 
-# Chamado pelo sinal da MagnetArea (Conectaremos no Editor)
 func _on_magnet_area_entered(area: Area2D) -> void:
-	# Duck Typing: Se tem o método 'attract', é colecionável
 	if area.has_method("attract"):
 		area.attract(self)
 
@@ -108,19 +109,26 @@ func add_xp(amount: float) -> void:
 		_level_up()
 
 func _level_up() -> void:
+	# Mantém o "troco" de XP para o próximo nível
 	_current_xp -= _xp_to_next_level
 	_current_level += 1
-	_xp_to_next_level *= 1.2 # Curva exponencial simples
+	
+	# FÓRMULA DE PROGRESSÃO
+	# XP Necessário = (XP Atual * Multiplicador) + Valor Fixo
+	# Ex: 100 * 1.1 + 25 = 135
+	# Ex: 135 * 1.1 + 25 = 173.5...
+	_xp_to_next_level = (_xp_to_next_level * xp_growth_multiplier) + xp_flat_increase
+	
 	on_level_up.emit(_current_level)
 	
-	# Cura total ou parcial ao subir de nível (opcional, comum no gênero)
+	# Cura ao subir de nível
 	heal(stats.get_stat("max_health") * 0.2)
 	
-	print("LEVEL UP! Nível: ", _current_level)
+	print("LEVEL UP! Nível: %d | Próximo XP: %.0f" % [_current_level, _xp_to_next_level])
 
 # --- MOVIMENTO E COMBATE ---
 
-func _handle_normal_movement(delta: float) -> void:
+func _handle_normal_movement(_delta: float) -> void:
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	var move_speed = stats.get_stat("move_speed")
 	velocity = input_dir * move_speed
@@ -181,6 +189,7 @@ func _setup_visuals() -> void:
 
 func _die() -> void:
 	set_physics_process(false)
+	# Aqui você pode adicionar lógica de Game Over depois
 
 func _handle_combat(delta: float) -> void:
 	if _attack_timer > 0:

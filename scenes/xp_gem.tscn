@@ -72,7 +72,7 @@ stream = ExtResource("4_rri22")
 bus = &"SFX"
 
 [node name="AuraParticles" type="CPUParticles2D" parent="."]
-amount = 20
+amount = 40
 texture = SubResource("GradientTexture2D_u4g2w")
 emission_shape = 1
 emission_sphere_radius = 10.0

@@ -1,6 +1,7 @@
-[gd_scene load_steps=18 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=19 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
+[ext_resource type="AudioStream" uid="uid://cuwhcgutsxmii" path="res://sfx/Sci-Fi 1 Loop.ogg" id="2_aonbx"]
 [ext_resource type="Shader" uid="uid://cetr7au44b3ni" path="res://shadders/infinite_grid.gdshader" id="2_oo155"]
 [ext_resource type="PackedScene" uid="uid://calshek1ah73r" path="res://scenes/player.tscn" id="3_eaq8r"]
 [ext_resource type="Script" uid="uid://dnpqog8vvkmtw" path="res://scripts/game_camera.gd" id="4_oo155"]
@@ -77,6 +78,7 @@ glow_bloom = 0.4
 [node name="GameManager" type="Node" node_paths=PackedStringArray("level_up_screen")]
 script = ExtResource("1_udu3i")
 level_up_screen = NodePath("HUD/LevelUpScreen")
+bgm_music = ExtResource("2_aonbx")
 
 [node name="World" type="Node2D" parent="."]
 
@@ -159,3 +161,5 @@ enemies_container = NodePath("../World/EnemiesContainer")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_jdad8")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]

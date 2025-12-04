@@ -4,10 +4,26 @@ class_name GameManager extends Node
 @onready var camera: GameCamera = $Camera2D
 @onready var hud: HUDManager = $HUD/Control
 
-# AGORA É UMA REFERÊNCIA DIRETA AO NÓ NA CENA
+# REFERÊNCIA DIRETA À UI
 @export var level_up_screen: LevelUpScreen 
 
+# MÚSICA DE FUNDO
+@export_group("Audio")
+@export var bgm_music: AudioStream
+@onready var _music_player: AudioStreamPlayer = AudioStreamPlayer.new()
+
 func _ready() -> void:
+	# Configura e adiciona o player de música
+	add_child(_music_player)
+	_music_player.bus = "Music" # Importante: crie esse Bus no editor de áudio!
+	_music_player.process_mode = Node.PROCESS_MODE_ALWAYS # Toca mesmo pausado (menu level up)
+	
+	if bgm_music:
+		_music_player.stream = bgm_music
+		_music_player.play()
+	else:
+		push_warning("GameManager: Nenhuma música de fundo atribuída.")
+
 	_validate_dependencies()
 	_initialize_game()
 
@@ -20,7 +36,6 @@ func _validate_dependencies() -> void:
 	if not camera: push_error("GameManager: Câmera não encontrada!")
 	if not hud: push_error("GameManager: HUD não encontrado!")
 	
-	# Aviso se esqueceu de conectar a tela no editor
 	if not level_up_screen: push_warning("GameManager: LevelUpScreen não atribuída!")
 
 func _initialize_game() -> void:
@@ -31,7 +46,6 @@ func _initialize_game() -> void:
 	if hud and player:
 		hud.setup(player)
 	
-	# Conecta o sinal
 	if player:
 		player.on_level_up.connect(_on_player_level_up)
 
