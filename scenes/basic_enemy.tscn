@@ -58,7 +58,6 @@ collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_md22f")
 max_health = 10.0
-xp_value = 1.0
 xp_gem_scene = ExtResource("2_cuegt")
 
 [node name="Visuals" type="Node2D" parent="."]
