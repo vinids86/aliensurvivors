@@ -1,12 +1,12 @@
-[gd_scene load_steps=9 format=3 uid="uid://bblqterm66oas"]
+[gd_scene load_steps=13 format=3 uid="uid://bblqterm66oas"]
 
 [ext_resource type="Script" uid="uid://c3fiu57c13d3q" path="res://scripts/xp_gem.gd" id="1_2i32e"]
 [ext_resource type="Shader" uid="uid://c7fcjm6r5wpe" path="res://shadders/item_shine.gdshader" id="2_rri22"]
 [ext_resource type="Texture2D" uid="uid://08ubmo2xapc0" path="res://resources/xp_gem.tres" id="3_u4g2w"]
-[ext_resource type="AudioStream" uid="uid://mwcmjqb6obng" path="res://sfx/coin-pickup.wav" id="4_gsjha"]
+[ext_resource type="AudioStream" uid="uid://bo8kugfjym48n" path="res://sfx/Gem.wav" id="4_rri22"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_2i32e"]
-radius = 8.0
+radius = 6.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_f76uh"]
 shader = ExtResource("2_rri22")
@@ -21,6 +21,23 @@ point_count = 2
 [sub_resource type="Gradient" id="Gradient_p1i3k"]
 colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
 
+[sub_resource type="Gradient" id="Gradient_rri22"]
+interpolation_mode = 2
+colors = PackedColorArray(1, 1, 0.431373, 1, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_u4g2w"]
+gradient = SubResource("Gradient_rri22")
+width = 2
+height = 2
+fill = 1
+
+[sub_resource type="Curve" id="Curve_rri22"]
+_data = [Vector2(0, 0.520532), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_u4g2w"]
+colors = PackedColorArray(1, 0.8, 0, 1, 1, 1, 1, 0)
+
 [node name="XPGem" type="Area2D" node_paths=PackedStringArray("sprite_ref", "particles_ref", "audio_ref")]
 collision_layer = 16
 script = ExtResource("1_2i32e")
@@ -33,12 +50,13 @@ shape = SubResource("CircleShape2D_2i32e")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_f76uh")
-rotation = 0.785398
+rotation = 1.22173
+skew = -0.872665
 texture = ExtResource("3_u4g2w")
 
 [node name="CollectParticles" type="CPUParticles2D" parent="."]
 emitting = false
-amount = 16
+amount = 100
 lifetime = 0.6
 one_shot = true
 explosiveness = 1.0
@@ -50,5 +68,14 @@ scale_amount_curve = SubResource("Curve_yqjd1")
 color_ramp = SubResource("Gradient_p1i3k")
 
 [node name="CollectSound" type="AudioStreamPlayer2D" parent="."]
-stream = ExtResource("4_gsjha")
+stream = ExtResource("4_rri22")
 bus = &"SFX"
+
+[node name="AuraParticles" type="CPUParticles2D" parent="."]
+amount = 20
+texture = SubResource("GradientTexture2D_u4g2w")
+emission_shape = 1
+emission_sphere_radius = 10.0
+gravity = Vector2(0, -20)
+scale_amount_curve = SubResource("Curve_rri22")
+color_ramp = SubResource("Gradient_u4g2w")

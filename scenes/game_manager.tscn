@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=11 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
 [ext_resource type="Shader" uid="uid://cetr7au44b3ni" path="res://shadders/infinite_grid.gdshader" id="2_oo155"]
@@ -17,6 +17,11 @@ shader_parameter/color_foam = Color(0.1, 0.4, 0.6, 1)
 shader_parameter/time_scale = 0.5
 shader_parameter/distortion_strength = 0.05
 shader_parameter/tile_scale = 4.0
+
+[sub_resource type="Environment" id="Environment_jdad8"]
+background_mode = 3
+glow_enabled = true
+glow_bloom = 0.4
 
 [node name="GameManager" type="Node"]
 script = ExtResource("1_udu3i")
@@ -40,7 +45,7 @@ offset_bottom = 2000.0
 [node name="LootContainer" type="Node2D" parent="World"]
 
 [node name="XPGem" parent="World/LootContainer" instance=ExtResource("3_jdad8")]
-position = Vector2(865, 346)
+position = Vector2(185, 1)
 
 [node name="Player" parent="World" instance=ExtResource("3_eaq8r")]
 
@@ -75,3 +80,6 @@ script = ExtResource("7_q8mjp")
 enemy_scene = ExtResource("4_ternb")
 player_ref = NodePath("../World/Player")
 enemies_container = NodePath("../World/EnemiesContainer")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_jdad8")

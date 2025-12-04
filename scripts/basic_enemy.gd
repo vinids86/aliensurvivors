@@ -1,8 +1,7 @@
 class_name BasicEnemy extends CharacterBody2D
 
 ## Inimigo "Kamikaze" Básico.
-## Comportamento: Persegue, Ataca e Recua no impacto (Bounce).
-## Arquitetura: CharacterBody2D com Area2D para trigger de ataque.
+## Comportamento: Persegue -> Ataca (Recoil) -> Morre e Dropa Loot.
 
 # --- CONFIGURAÇÃO ---
 @export_group("Stats")
@@ -13,8 +12,11 @@ class_name BasicEnemy extends CharacterBody2D
 
 @export_group("Combat")
 @export var attack_cooldown: float = 1.0
-@export var push_force_on_player: float = 400.0  # Força aplicada no Player
-@export var recoil_force: float = 300.0          # Força aplicada em si mesmo (Recuo)
+@export var push_force_on_player: float = 400.0
+@export var recoil_force: float = 300.0
+
+@export_group("Loot")
+@export var xp_gem_scene: PackedScene # Arraste a cena xp_gem.tscn aqui
 
 # --- REFERÊNCIAS ---
 @export_group("References")
@@ -50,20 +52,17 @@ func _ready() -> void:
 		_original_color = _material_ref.get_shader_parameter("base_color")
 
 func _physics_process(delta: float) -> void:
-	# 1. Movimento e Decaimento de Knockback
 	_handle_movement(delta)
-	
-	# 2. Lógica de Ataque
 	_handle_attack_logic(delta)
 
 func _handle_movement(delta: float) -> void:
 	if _player_ref:
 		var direction = (_player_ref.global_position - global_position).normalized()
 		
-		# Se o knockback for forte, perde controle do movimento (fica atordoado)
+		# Perde controle sob knockback forte
 		var control_factor = 1.0
 		if _knockback_velocity.length() > 50.0:
-			control_factor = 0.1 # Quase zero controle durante o recuo
+			control_factor = 0.1
 			
 		velocity = (direction * move_speed * control_factor) + _knockback_velocity
 	else:
@@ -71,7 +70,6 @@ func _handle_movement(delta: float) -> void:
 	
 	move_and_slide()
 	
-	# Decaimento suave da inércia (Friction)
 	if _knockback_velocity.length_squared() > 10.0:
 		_knockback_velocity = _knockback_velocity.lerp(Vector2.ZERO, 8.0 * delta)
 	
@@ -91,15 +89,12 @@ func _handle_attack_logic(delta: float) -> void:
 				break 
 
 func _execute_attack(target: PlayerController) -> void:
-	# 1. Causa dano e empurra o Player
 	target.take_damage(damage, self, push_force_on_player)
 	
-	# 2. Empurra a SI MESMO para trás (Recuo/Bounce)
-	# A direção é: Posição do Inimigo - Posição do Player (vetor saindo do player)
+	# Recuo
 	var recoil_dir = (global_position - target.global_position).normalized()
 	apply_knockback(recoil_dir * recoil_force)
 	
-	# 3. Reinicia cooldown
 	_current_attack_cooldown = attack_cooldown
 
 # --- INTERFACE PÚBLICA ---
@@ -110,7 +105,6 @@ func take_damage(amount: float) -> void:
 	if _current_health <= 0:
 		die()
 
-## Aplica uma força física externa (ex: golpe do player ou seu próprio recuo)
 func apply_knockback(force: Vector2) -> void:
 	_knockback_velocity = force
 
@@ -124,6 +118,14 @@ func _flash_hit() -> void:
 		)
 
 func die() -> void:
-	if _player_ref:
-		_player_ref.add_xp(xp_value)
+	# DROP DE LOOT
+	if xp_gem_scene:
+		var gem = xp_gem_scene.instantiate()
+		gem.global_position = global_position
+		gem.xp_amount = xp_value # Passa o valor do inimigo para a gema
+		
+		# Adiciona à raiz para não ser deletado junto com o inimigo
+		# Usamos call_deferred para evitar travamentos de física durante a troca de frame
+		get_tree().root.call_deferred("add_child", gem)
+	
 	queue_free()
