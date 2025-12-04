@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatUpgradeCard" load_steps=2 format=3 uid="uid://vb2crnoaj7ld"]
+
+[ext_resource type="Script" uid="uid://bvl7b0tedoo1e" path="res://scripts/stat_upgrade_card.gd" id="1_awlry"]
+
+[resource]
+script = ExtResource("1_awlry")
+stat_name = "pickup_range"
+value_to_add = 50.0
+title = "Magnetic Field"
+description = "Aumenta o raio de coleta de XP em +50%."
+metadata/_custom_type_script = "uid://bvl7b0tedoo1e"

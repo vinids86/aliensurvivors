@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatUpgradeCard" load_steps=2 format=3 uid="uid://8p05gx05cs1p"]
+
+[ext_resource type="Script" uid="uid://bvl7b0tedoo1e" path="res://scripts/stat_upgrade_card.gd" id="1_dsiqs"]
+
+[resource]
+script = ExtResource("1_dsiqs")
+stat_name = "damage"
+value_to_add = 5.0
+title = "Raw Power"
+description = "Aumenta o dano base de todos os ataques em +5."
+metadata/_custom_type_script = "uid://bvl7b0tedoo1e"

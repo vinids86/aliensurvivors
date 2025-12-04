@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="StatUpgradeCard" load_steps=2 format=3 uid="uid://xifjuy5er3ab"]
+
+[ext_resource type="Script" uid="uid://bvl7b0tedoo1e" path="res://scripts/stat_upgrade_card.gd" id="1_f0ia1"]
+
+[resource]
+script = ExtResource("1_f0ia1")
+stat_name = "duration"
+value_to_add = 0.3
+title = "Energia Residual"
+description = "Os ataques permanecem ativos na tela por mais tempo."
+metadata/_custom_type_script = "uid://bvl7b0tedoo1e"
