@@ -1,0 +1,54 @@
+[gd_scene load_steps=10 format=3 uid="uid://b3bae2f4t27q2"]
+
+[ext_resource type="Script" uid="uid://bf1gnrxfoufi5" path="res://scripts/level_up_screen.gd" id="1_tujht"]
+[ext_resource type="PackedScene" uid="uid://xfvokgmvkeyj" path="res://scenes/upgrade_card_ui.tscn" id="2_16lk3"]
+[ext_resource type="Script" uid="uid://dcuvdcti0uoor" path="res://scripts/upgrade_card.gd" id="3_aohmo"]
+[ext_resource type="Resource" uid="uid://8p05gx05cs1p" path="res://resources/1_dmg.tres" id="4_qeego"]
+[ext_resource type="Resource" uid="uid://vb2crnoaj7ld" path="res://resources/1_mag.tres" id="5_xa40w"]
+[ext_resource type="Resource" uid="uid://brnbq4yovep45" path="res://resources/1_speed.tres" id="6_0pxv3"]
+[ext_resource type="Resource" uid="uid://dyrbs8fbawm38" path="res://resources/upgrade_area_boost.tres" id="7_1jr8n"]
+[ext_resource type="Resource" uid="uid://xifjuy5er3ab" path="res://resources/upgrade_duration_boost.tres" id="8_cwjcx"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_16lk3"]
+font_size = 48
+font_color = Color(30.939, 32.597, 33.702, 0.739)
+shadow_size = 20
+shadow_color = Color(0, 0, 0, 0.393)
+
+[node name="LevelUpScreen" type="CanvasLayer" node_paths=PackedStringArray("cards_container")]
+script = ExtResource("1_tujht")
+card_ui_scene = ExtResource("2_16lk3")
+cards_container = NodePath("CardsContainer")
+all_upgrades = Array[ExtResource("3_aohmo")]([ExtResource("4_qeego"), ExtResource("5_xa40w"), ExtResource("6_0pxv3"), ExtResource("7_1jr8n"), ExtResource("8_cwjcx")])
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Label" type="Label" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 80.0
+offset_bottom = 147.0
+grow_horizontal = 2
+text = "LEVEL UP"
+label_settings = SubResource("LabelSettings_16lk3")
+horizontal_alignment = 1
+
+[node name="CardsContainer" type="HBoxContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
