@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=18 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
 [ext_resource type="Shader" uid="uid://cetr7au44b3ni" path="res://shadders/infinite_grid.gdshader" id="2_oo155"]
@@ -9,6 +9,8 @@
 [ext_resource type="PackedScene" uid="uid://b3bae2f4t27q2" path="res://scenes/level_up_screen.tscn" id="7_frtjd"]
 [ext_resource type="Script" uid="uid://cbhyd4ib1enar" path="res://scripts/hud_manager.gd" id="7_k4jhu"]
 [ext_resource type="Script" uid="uid://bsvvik7nlhhom" path="res://scripts/enemy_spawner.gd" id="7_q8mjp"]
+[ext_resource type="AudioStream" uid="uid://bk6v7bbmdxwkl" path="res://sfx/Old Terminal Popup Appear Low.wav" id="8_0rse5"]
+[ext_resource type="AudioStream" uid="uid://bctd2hcxl65rh" path="res://sfx/Hologram Menu Open-2.wav" id="9_aonbx"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ternb"]
 shader = ExtResource("2_oo155")
@@ -146,6 +148,8 @@ offset_right = 81.0
 offset_bottom = 83.0
 
 [node name="LevelUpScreen" parent="HUD" instance=ExtResource("7_frtjd")]
+sfx_hover = ExtResource("8_0rse5")
+sfx_confirm = ExtResource("9_aonbx")
 
 [node name="EnemySpawner" type="Node2D" parent="." node_paths=PackedStringArray("player_ref", "enemies_container")]
 script = ExtResource("7_q8mjp")
