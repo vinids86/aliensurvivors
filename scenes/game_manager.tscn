@@ -1,8 +1,9 @@
-[gd_scene load_steps=9 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=10 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
 [ext_resource type="Shader" uid="uid://cetr7au44b3ni" path="res://shadders/infinite_grid.gdshader" id="2_oo155"]
 [ext_resource type="PackedScene" uid="uid://calshek1ah73r" path="res://scenes/player.tscn" id="3_eaq8r"]
+[ext_resource type="PackedScene" uid="uid://bblqterm66oas" path="res://scenes/xp_gem.tscn" id="3_jdad8"]
 [ext_resource type="Script" uid="uid://dnpqog8vvkmtw" path="res://scripts/game_camera.gd" id="4_oo155"]
 [ext_resource type="PackedScene" uid="uid://de6v0qxua2cuo" path="res://scenes/basic_enemy.tscn" id="4_ternb"]
 [ext_resource type="PackedScene" uid="uid://c4yb87qyaut3j" path="res://scenes/ambient_dust.tscn" id="5_eaq8r"]
@@ -37,6 +38,9 @@ offset_bottom = 2000.0
 [node name="EnemiesContainer" type="Node2D" parent="World"]
 
 [node name="LootContainer" type="Node2D" parent="World"]
+
+[node name="XPGem" parent="World/LootContainer" instance=ExtResource("3_jdad8")]
+position = Vector2(865, 346)
 
 [node name="Player" parent="World" instance=ExtResource("3_eaq8r")]
 

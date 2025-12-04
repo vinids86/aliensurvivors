@@ -1,0 +1,54 @@
+[gd_scene load_steps=9 format=3 uid="uid://bblqterm66oas"]
+
+[ext_resource type="Script" uid="uid://c3fiu57c13d3q" path="res://scripts/xp_gem.gd" id="1_2i32e"]
+[ext_resource type="Shader" uid="uid://c7fcjm6r5wpe" path="res://shadders/item_shine.gdshader" id="2_rri22"]
+[ext_resource type="Texture2D" uid="uid://08ubmo2xapc0" path="res://resources/xp_gem.tres" id="3_u4g2w"]
+[ext_resource type="AudioStream" uid="uid://mwcmjqb6obng" path="res://sfx/coin-pickup.wav" id="4_gsjha"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_2i32e"]
+radius = 8.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_f76uh"]
+shader = ExtResource("2_rri22")
+shader_parameter/shine_color = Color(1, 1, 1, 1)
+shader_parameter/shine_speed = 3.0
+shader_parameter/shine_size = 0.1
+
+[sub_resource type="Curve" id="Curve_yqjd1"]
+_data = [Vector2(0.00203252, 1), 0.0, -1.47511, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="Gradient" id="Gradient_p1i3k"]
+colors = PackedColorArray(1, 1, 1, 0, 1, 1, 1, 1)
+
+[node name="XPGem" type="Area2D" node_paths=PackedStringArray("sprite_ref", "particles_ref", "audio_ref")]
+collision_layer = 16
+script = ExtResource("1_2i32e")
+sprite_ref = NodePath("Sprite2D")
+particles_ref = NodePath("CollectParticles")
+audio_ref = NodePath("CollectSound")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_2i32e")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_f76uh")
+rotation = 0.785398
+texture = ExtResource("3_u4g2w")
+
+[node name="CollectParticles" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 16
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 50.0
+initial_velocity_max = 100.0
+scale_amount_curve = SubResource("Curve_yqjd1")
+color_ramp = SubResource("Gradient_p1i3k")
+
+[node name="CollectSound" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource("4_gsjha")
+bus = &"SFX"
