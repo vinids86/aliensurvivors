@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=20 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
 [ext_resource type="AudioStream" uid="uid://cuwhcgutsxmii" path="res://sfx/Sci-Fi 1 Loop.ogg" id="2_aonbx"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://dnpqog8vvkmtw" path="res://scripts/game_camera.gd" id="4_oo155"]
 [ext_resource type="PackedScene" uid="uid://de6v0qxua2cuo" path="res://scenes/basic_enemy.tscn" id="4_ternb"]
 [ext_resource type="PackedScene" uid="uid://c4yb87qyaut3j" path="res://scenes/ambient_dust.tscn" id="5_eaq8r"]
+[ext_resource type="PackedScene" uid="uid://p4ux6r4lhnc6" path="res://scenes/dasher_enemy.tscn" id="5_lcbjr"]
 [ext_resource type="PackedScene" uid="uid://b3bae2f4t27q2" path="res://scenes/level_up_screen.tscn" id="7_frtjd"]
 [ext_resource type="Script" uid="uid://cbhyd4ib1enar" path="res://scripts/hud_manager.gd" id="7_k4jhu"]
 [ext_resource type="Script" uid="uid://bsvvik7nlhhom" path="res://scripts/enemy_spawner.gd" id="7_q8mjp"]
@@ -100,6 +101,9 @@ offset_bottom = 2000.0
 
 [node name="Player" parent="World" instance=ExtResource("3_eaq8r")]
 
+[node name="DasherEnemy" parent="World" instance=ExtResource("5_lcbjr")]
+position = Vector2(636, 229)
+
 [node name="Camera2D" type="Camera2D" parent="."]
 position_smoothing_enabled = true
 script = ExtResource("4_oo155")
@@ -155,7 +159,8 @@ sfx_confirm = ExtResource("9_aonbx")
 
 [node name="EnemySpawner" type="Node2D" parent="." node_paths=PackedStringArray("player_ref", "enemies_container")]
 script = ExtResource("7_q8mjp")
-enemy_scene = ExtResource("4_ternb")
+spawnable_enemies = Array[PackedScene]([ExtResource("4_ternb"), ExtResource("4_ternb"), ExtResource("4_ternb"), ExtResource("5_lcbjr"), ExtResource("4_ternb")])
+spawn_interval = 1.5
 player_ref = NodePath("../World/Player")
 enemies_container = NodePath("../World/EnemiesContainer")
 

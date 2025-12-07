@@ -18,6 +18,9 @@ class_name BasicEnemy extends CharacterBody2D
 @export_group("Loot")
 @export var xp_gem_scene: PackedScene # Arraste a cena xp_gem.tscn aqui
 
+@export_group("Audio")
+@export var sfx_death: AudioStream # Som ao morrer (adicione aqui no Inspector)
+
 # --- REFERÊNCIAS ---
 @export_group("References")
 @export var visual_sprite: Sprite2D 
@@ -59,10 +62,18 @@ func _handle_movement(delta: float) -> void:
 	if _player_ref:
 		var direction = (_player_ref.global_position - global_position).normalized()
 		
-		# Perde controle sob knockback forte
+		# CORREÇÃO: Evita que inimigos "grudem" no player.
+		# Se o inimigo estiver sob efeito de knockback forte OU acabou de atacar (está em cooldown),
+		# reduzimos drasticamente o controle de movimento dele.
+		# Isso permite que a força de recuo (recoil) afaste ele do player antes que ele volte a perseguir.
+		
+		var is_taking_knockback = _knockback_velocity.length() > 50.0
+		# Considera "em recuperação" se ainda faltar mais de 50% do cooldown para acabar
+		var is_recovering_attack = _current_attack_cooldown > (attack_cooldown * 0.5)
+		
 		var control_factor = 1.0
-		if _knockback_velocity.length() > 50.0:
-			control_factor = 0.1
+		if is_taking_knockback or is_recovering_attack:
+			control_factor = 0.05 # Quase zero perseguição, apenas desliza
 			
 		velocity = (direction * move_speed * control_factor) + _knockback_velocity
 	else:
@@ -118,11 +129,21 @@ func _flash_hit() -> void:
 		)
 
 func die() -> void:
+	# OTIMIZAÇÃO: Toca som via Pool Global
+	if sfx_death:
+		if has_node("/root/AudioManager"):
+			get_node("/root/AudioManager").play_sfx_2d(sfx_death, global_position)
+	
 	# DROP DE LOOT
 	if xp_gem_scene:
 		var gem = xp_gem_scene.instantiate()
 		gem.global_position = global_position
-		gem.xp_amount = xp_value # Passa o valor do inimigo para a gema
+		
+		# Tenta passar o valor do XP de forma segura (verifica nomes de variáveis comuns)
+		if "xp_amount" in gem:
+			gem.xp_amount = xp_value
+		elif "amount" in gem:
+			gem.amount = xp_value
 		
 		# Adiciona à raiz para não ser deletado junto com o inimigo
 		# Usamos call_deferred para evitar travamentos de física durante a troca de frame

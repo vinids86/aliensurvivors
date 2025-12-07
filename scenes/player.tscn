@@ -35,6 +35,7 @@ sprite_ref = NodePath("Visuals/Sprite2D")
 body_shader = ExtResource("4_dqkch")
 audio_player = NodePath("SfxPlayer")
 sfx_hurt = ExtResource("5_tuyoq")
+xp_growth_multiplier = 1.5
 magnet_area_shape = NodePath("MagnetArea/CollisionShape2D")
 
 [node name="Visuals" type="Node2D" parent="."]

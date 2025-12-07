@@ -1,11 +1,14 @@
 class_name EnemySpawner extends Node2D
 
 ## Gerenciador de Inimigos Orbital.
-## Spawna inimigos em um anel ao redor do Player, garantindo que nasçam fora da tela.
+## Spawna inimigos em um anel ao redor do Player, escolhendo aleatoriamente da lista.
 
 # --- CONFIGURAÇÃO ---
 @export_group("Spawn Settings")
-@export var enemy_scene: PackedScene      # Arraste o basic_enemy.tscn aqui
+# ALTERAÇÃO: Mudamos de uma única cena para uma Array (Lista).
+# DICA: Para fazer o 'Dasher' ser mais raro, adicione o 'BasicEnemy' várias vezes na lista e o 'Dasher' apenas uma.
+# Ex: [Basic, Basic, Basic, Dasher] = 25% de chance de vir um Dasher.
+@export var spawnable_enemies: Array[PackedScene] 
 @export var spawn_radius: float = 1000.0  # Distância do player (900 é seguro para 1080p)
 @export var spawn_interval: float = 1.0   # Tempo entre inimigos (segundos)
 
@@ -24,8 +27,8 @@ var _timer: Timer
 
 func _ready() -> void:
 	# Validação
-	if not enemy_scene:
-		push_error("EnemySpawner: Nenhuma cena de inimigo configurada!")
+	if spawnable_enemies.is_empty():
+		push_error("EnemySpawner: Nenhuma cena de inimigo configurada na lista 'Spawnable Enemies'!")
 		set_process(false)
 		return
 	
@@ -54,7 +57,9 @@ func _spawn_enemy() -> void:
 	# Calcula a posição baseada no seno/cosseno
 	var spawn_pos = player_ref.global_position + Vector2(cos(angle), sin(angle)) * spawn_radius
 	
-	# 2. Instancia
+	# 2. Instancia (Sorteio Simples)
+	# pick_random() escolhe um item aleatório do array.
+	var enemy_scene = spawnable_enemies.pick_random()
 	var enemy = enemy_scene.instantiate()
 	enemy.global_position = spawn_pos
 	

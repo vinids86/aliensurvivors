@@ -1,0 +1,71 @@
+[gd_scene load_steps=15 format=3 uid="uid://p4ux6r4lhnc6"]
+
+[ext_resource type="Script" uid="uid://sheerwyrqms" path="res://scripts/dasher_enemy.gd" id="1_ifw0t"]
+[ext_resource type="Shader" uid="uid://cc6ixlcd78lmq" path="res://shadders/dasher_enemy.gdshader" id="1_wmnb3"]
+[ext_resource type="PackedScene" uid="uid://bblqterm66oas" path="res://scenes/xp_gem.tscn" id="2_gkwxy"]
+[ext_resource type="AudioStream" uid="uid://b358e3csg303j" path="res://sfx/Gore Splat Stab Poke 03.wav" id="3_xxycc"]
+[ext_resource type="AudioStream" uid="uid://b3gk8m2rntq5y" path="res://sfx/prepare_dash.wav" id="4_bl5rs"]
+[ext_resource type="AudioStream" uid="uid://b4h4c1tnrkyas" path="res://sfx/dasher.wav" id="5_6ea2t"]
+[ext_resource type="AudioStream" uid="uid://bs4vqdgquaihg" path="res://sfx/EXPLDsgn_Explosion Impact_14.wav" id="6_bl5rs"]
+
+[sub_resource type="Gradient" id="Gradient_6ea2t"]
+colors = PackedColorArray(56.906, 0, 0, 0.878, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_7d06h"]
+gradient = SubResource("Gradient_6ea2t")
+
+[sub_resource type="Curve" id="Curve_lcnyb"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_qaxri"]
+curve = SubResource("Curve_lcnyb")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_wtd0g"]
+particle_flag_disable_z = true
+gravity = Vector3(0, 0, 0)
+scale_curve = SubResource("CurveTexture_qaxri")
+color_ramp = SubResource("GradientTexture1D_7d06h")
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ifw0t"]
+shader = ExtResource("1_wmnb3")
+shader_parameter/base_color = Color(1, 0.3, 0.1, 1)
+shader_parameter/core_color = Color(0.2, 0, 0.05, 1)
+shader_parameter/flash_color = Color(1, 0.9, 0.8, 1)
+shader_parameter/charge_level = 0.4
+shader_parameter/shake_power = 1.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ifw0t"]
+radius = 58.0
+height = 116.0
+
+[node name="DasherEnemy" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 9
+script = ExtResource("1_ifw0t")
+dash_speed = 800.0
+xp_gem_scene = ExtResource("2_gkwxy")
+xp_amount = 100
+sfx_hit = ExtResource("3_xxycc")
+sfx_charge = ExtResource("4_bl5rs")
+sfx_dash = ExtResource("5_6ea2t")
+sfx_death = ExtResource("6_bl5rs")
+
+[node name="TrailParticles" type="GPUParticles2D" parent="."]
+amount = 60
+lifetime = 0.5
+process_material = SubResource("ParticleProcessMaterial_wtd0g")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_ifw0t")
+offset_left = -90.0
+offset_top = -60.0
+offset_right = 90.0
+offset_bottom = 60.0
+pivot_offset = Vector2(90, 60)
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+shape = SubResource("CapsuleShape2D_ifw0t")

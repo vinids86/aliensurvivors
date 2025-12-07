@@ -1,8 +1,9 @@
-[gd_scene load_steps=8 format=3 uid="uid://de6v0qxua2cuo"]
+[gd_scene load_steps=9 format=3 uid="uid://de6v0qxua2cuo"]
 
 [ext_resource type="Script" uid="uid://cala3b8irouy" path="res://scripts/basic_enemy.gd" id="1_md22f"]
 [ext_resource type="PackedScene" uid="uid://bblqterm66oas" path="res://scenes/xp_gem.tscn" id="2_cuegt"]
 [ext_resource type="Texture2D" uid="uid://cl5c57oibjf8x" path="res://icon.svg" id="2_fn5nn"]
+[ext_resource type="AudioStream" uid="uid://bs4vqdgquaihg" path="res://sfx/EXPLDsgn_Explosion Impact_14.wav" id="3_cuegt"]
 
 [sub_resource type="Shader" id="Shader_cuegt"]
 code = "shader_type canvas_item;
@@ -58,7 +59,9 @@ collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_md22f")
 max_health = 10.0
+xp_value = 5.0
 xp_gem_scene = ExtResource("2_cuegt")
+sfx_death = ExtResource("3_cuegt")
 
 [node name="Visuals" type="Node2D" parent="."]
 
