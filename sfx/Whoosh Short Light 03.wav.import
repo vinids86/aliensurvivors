@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://jrod2amj0l1m"
+path="res://.godot/imported/Whoosh Short Light 03.wav-ba515a44fc29a1c789b1da96c3122fac.sample"
+
+[deps]
+
+source_file="res://sfx/Whoosh Short Light 03.wav"
+dest_files=["res://.godot/imported/Whoosh Short Light 03.wav-ba515a44fc29a1c789b1da96c3122fac.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

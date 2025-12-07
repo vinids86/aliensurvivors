@@ -43,11 +43,15 @@ func _initialize_game() -> void:
 		camera.global_position = player.global_position
 		
 		# --- CONEXÃO DOS EFEITOS DE CÂMERA ---
-		# 1. Quando o player ataca (Tiro ou Corte)
-		player.on_attack_triggered.connect(_on_player_attack)
+		if player.has_signal("on_attack_triggered"):
+			player.on_attack_triggered.connect(_on_player_attack)
 		
-		# 2. Quando o player recebe dano
-		player.on_hit_received.connect(_on_player_hit)
+		if player.has_signal("on_hit_received"):
+			player.on_hit_received.connect(_on_player_hit)
+			
+		# NOVO: Conecta o sinal do Dash
+		if player.has_signal("on_dash_used"):
+			player.on_dash_used.connect(_on_player_dash)
 	
 	if hud and player:
 		hud.setup(player)
@@ -59,21 +63,21 @@ func _initialize_game() -> void:
 
 func _on_player_attack(_context: Dictionary) -> void:
 	if not camera: return
-	
-	# Pequeno "coice" visual a cada ataque para dar peso
-	# Trauma baixo (0.15) = tremor sutil
-	# Zoom Kick pequeno (0.02) = pulsação rítmica
 	camera.add_trauma(0.15)
 	camera.zoom_kick(Vector2(0.02, 0.02), 0.1)
 
 func _on_player_hit(_source, _damage) -> void:
 	if not camera: return
-	
-	# Impacto massivo ao levar dano
-	# Trauma alto (0.6) = tremor forte + aberração cromática visível
-	# Zoom Kick negativo (-0.05) = câmera "se afasta" ou distorce com o susto
 	camera.add_trauma(0.6)
 	camera.zoom_kick(Vector2(-0.05, -0.05), 0.3)
+
+# NOVO: Reação da câmera ao Dash
+func _on_player_dash(_cooldown) -> void:
+	if not camera: return
+	# Zoom out leve e rápido para dar sensação de velocidade
+	camera.zoom_kick(Vector2(0.05, 0.05), 0.15) 
+	# Trauma leve para sentir o impacto da arrancada
+	camera.add_trauma(0.2)
 
 func _on_player_level_up(_new_level: int) -> void:
 	if level_up_screen:
