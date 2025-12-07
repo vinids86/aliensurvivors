@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://yjjasbrhhsqh"]
+[gd_scene load_steps=22 format=3 uid="uid://yjjasbrhhsqh"]
 
 [ext_resource type="Script" uid="uid://nmuy1d3r4ajh" path="res://scripts/game_manager.gd" id="1_udu3i"]
 [ext_resource type="AudioStream" uid="uid://cuwhcgutsxmii" path="res://sfx/Sci-Fi 1 Loop.ogg" id="2_aonbx"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://bsvvik7nlhhom" path="res://scripts/enemy_spawner.gd" id="7_q8mjp"]
 [ext_resource type="AudioStream" uid="uid://bk6v7bbmdxwkl" path="res://sfx/Old Terminal Popup Appear Low.wav" id="8_0rse5"]
 [ext_resource type="AudioStream" uid="uid://bctd2hcxl65rh" path="res://sfx/Hologram Menu Open-2.wav" id="9_aonbx"]
+[ext_resource type="Shader" uid="uid://dvk4gyqh3rlkk" path="res://shadders/chromatic_aberration.gdshader" id="14_30v7y"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ternb"]
 shader = ExtResource("2_oo155")
@@ -76,6 +77,10 @@ background_mode = 3
 glow_enabled = true
 glow_bloom = 0.4
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_lcbjr"]
+shader = ExtResource("14_30v7y")
+shader_parameter/chaos_level = 0.0
+
 [node name="GameManager" type="Node" node_paths=PackedStringArray("level_up_screen")]
 script = ExtResource("1_udu3i")
 level_up_screen = NodePath("HUD/LevelUpScreen")
@@ -101,16 +106,16 @@ offset_bottom = 2000.0
 
 [node name="Player" parent="World" instance=ExtResource("3_eaq8r")]
 
-[node name="DasherEnemy" parent="World" instance=ExtResource("5_lcbjr")]
-position = Vector2(636, 229)
-
-[node name="Camera2D" type="Camera2D" parent="."]
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("target", "post_process_rect")]
 position_smoothing_enabled = true
 script = ExtResource("4_oo155")
+target = NodePath("../World/Player")
+post_process_rect = NodePath("../PostProcessLayer/ColorRect")
 
 [node name="AmbientDust" parent="Camera2D" instance=ExtResource("5_eaq8r")]
 
 [node name="HUD" type="CanvasLayer" parent="."]
+layer = 2
 
 [node name="Control" type="Control" parent="HUD" node_paths=PackedStringArray("health_bar", "xp_bar", "level_label")]
 layout_mode = 3
@@ -168,3 +173,13 @@ enemies_container = NodePath("../World/EnemiesContainer")
 environment = SubResource("Environment_jdad8")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="PostProcessLayer" type="CanvasLayer" parent="."]
+
+[node name="ColorRect" type="ColorRect" parent="PostProcessLayer"]
+material = SubResource("ShaderMaterial_lcbjr")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
