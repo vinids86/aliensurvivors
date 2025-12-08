@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://calshek1ah73r"]
+[gd_scene load_steps=17 format=3 uid="uid://calshek1ah73r"]
 
 [ext_resource type="Script" uid="uid://jbg1g8oyn70k" path="res://scripts/player_controller.gd" id="1_g2els"]
 [ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="2_qhqgy"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" uid="uid://b8fqfu2bbgmi6" path="res://scripts/experience_component.gd" id="10_y4r1p"]
 [ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="11_d2wvv"]
 [ext_resource type="Script" uid="uid://shosuodasynd" path="res://scripts/weapon_manager.gd" id="12_3v2ag"]
+[ext_resource type="Script" uid="uid://c8m7ejdilmw0d" path="res://scripts/player_visuals.gd" id="13_jej6c"]
 
 [sub_resource type="Resource" id="Resource_dqkch"]
 script = ExtResource("2_qhqgy")
@@ -32,16 +33,11 @@ radius = 32.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_tuyoq"]
 radius = 100.0
 
-[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("magnet_area_shape", "sprite_ref", "audio_player") groups=["player"]]
+[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("magnet_area_shape") groups=["player"]]
 collision_mask = 10
 script = ExtResource("1_g2els")
 stats = SubResource("Resource_dqkch")
 magnet_area_shape = NodePath("MagnetArea/CollisionShape2D")
-sprite_ref = NodePath("Visuals/Sprite2D")
-body_shader = ExtResource("4_dqkch")
-audio_player = NodePath("SfxPlayer")
-sfx_hurt = ExtResource("5_tuyoq")
-sfx_dash = ExtResource("6_fjrip")
 
 [node name="Visuals" type="Node2D" parent="."]
 
@@ -84,5 +80,14 @@ body = NodePath("..")
 stats = ExtResource("2_qhqgy")
 basic_attack_card = ExtResource("3_smehm")
 special_attack_card = ExtResource("3_qhqgy")
+
+[node name="PlayerVisuals" type="Node" parent="." node_paths=PackedStringArray("sprite_ref", "audio_player")]
+unique_name_in_owner = true
+script = ExtResource("13_jej6c")
+sprite_ref = NodePath("../Visuals/Sprite2D")
+audio_player = NodePath("../SfxPlayer")
+body_shader = ExtResource("4_dqkch")
+sfx_hurt = ExtResource("5_tuyoq")
+sfx_dash = ExtResource("6_fjrip")
 
 [connection signal="area_entered" from="MagnetArea" to="." method="_on_magnet_area_entered"]
