@@ -71,7 +71,7 @@ func move_with_input(input_dir: Vector2, speed_override: float = -1.0) -> void:
 	if speed_override > 0:
 		final_speed = speed_override
 	# Prioridade 2: Sistema de Stats (usado pelo Player)
-	elif stats: 
+	elif stats:
 		final_speed = stats.get_stat("move_speed", 200.0)
 	
 	body.velocity = input_dir * final_speed

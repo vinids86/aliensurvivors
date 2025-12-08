@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://p4ux6r4lhnc6"]
+[gd_scene load_steps=22 format=3 uid="uid://p4ux6r4lhnc6"]
 
 [ext_resource type="Script" uid="uid://sheerwyrqms" path="res://scripts/dasher_enemy.gd" id="1_ifw0t"]
 [ext_resource type="Shader" uid="uid://cc6ixlcd78lmq" path="res://shadders/dasher_enemy.gdshader" id="1_wmnb3"]
@@ -7,6 +7,12 @@
 [ext_resource type="AudioStream" uid="uid://b3gk8m2rntq5y" path="res://sfx/prepare_dash.wav" id="4_bl5rs"]
 [ext_resource type="AudioStream" uid="uid://b4h4c1tnrkyas" path="res://sfx/dasher.wav" id="5_6ea2t"]
 [ext_resource type="AudioStream" uid="uid://bs4vqdgquaihg" path="res://sfx/EXPLDsgn_Explosion Impact_14.wav" id="6_bl5rs"]
+[ext_resource type="Script" uid="uid://xwe7slciw4dk" path="res://scripts/health_component.gd" id="8_qaxri"]
+[ext_resource type="Script" uid="uid://bkbdxkfdr6rou" path="res://scripts/enemy_visuals.gd" id="9_7d06h"]
+[ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="9_s0lsk"]
+[ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="9_wtd0g"]
+[ext_resource type="Script" uid="uid://bda1kmuhrcrqx" path="res://scripts/loot_component.gd" id="10_s0lsk"]
+[ext_resource type="Script" uid="uid://b5nvsanyawkw0" path="res://scenes/hitbox_component.gd" id="11_qj1dy"]
 
 [sub_resource type="Gradient" id="Gradient_6ea2t"]
 colors = PackedColorArray(56.906, 0, 0, 0.878, 1, 1, 1, 0)
@@ -39,17 +45,15 @@ shader_parameter/shake_power = 1.0
 radius = 58.0
 height = 116.0
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_4uq26"]
+radius = 49.0413
+height = 128.047
+
 [node name="DasherEnemy" type="CharacterBody2D"]
 collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_ifw0t")
 dash_speed = 800.0
-xp_gem_scene = ExtResource("2_gkwxy")
-xp_amount = 100
-sfx_hit = ExtResource("3_xxycc")
-sfx_charge = ExtResource("4_bl5rs")
-sfx_dash = ExtResource("5_6ea2t")
-sfx_death = ExtResource("6_bl5rs")
 
 [node name="TrailParticles" type="GPUParticles2D" parent="."]
 amount = 60
@@ -64,8 +68,43 @@ offset_right = 90.0
 offset_bottom = 60.0
 pivot_offset = Vector2(90, 60)
 
-[node name="NavigationAgent2D" type="NavigationAgent2D" parent="."]
-
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 visible = false
 shape = SubResource("CapsuleShape2D_ifw0t")
+
+[node name="HealthComponent" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("8_qaxri")
+
+[node name="MovementController" type="Node" parent="." node_paths=PackedStringArray("body")]
+unique_name_in_owner = true
+script = ExtResource("9_wtd0g")
+body = NodePath("..")
+stats = ExtResource("9_s0lsk")
+
+[node name="LootComponent" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("10_s0lsk")
+drop_scene = ExtResource("2_gkwxy")
+
+[node name="HitboxComponent" type="Area2D" parent="."]
+unique_name_in_owner = true
+collision_layer = 0
+monitoring = false
+script = ExtResource("11_qj1dy")
+damage = 15.0
+knockback_force = 500.0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxComponent"]
+rotation = -1.58662
+shape = SubResource("CapsuleShape2D_4uq26")
+
+[node name="EnemyVisuals" type="Node" parent="." node_paths=PackedStringArray("visual_body", "trail_particles")]
+unique_name_in_owner = true
+script = ExtResource("9_7d06h")
+visual_body = NodePath("../ColorRect")
+trail_particles = NodePath("../TrailParticles")
+sfx_charge = ExtResource("4_bl5rs")
+sfx_dash = ExtResource("5_6ea2t")
+sfx_hit = ExtResource("3_xxycc")
+sfx_death = ExtResource("6_bl5rs")

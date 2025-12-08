@@ -6,7 +6,7 @@
 [ext_resource type="AudioStream" uid="uid://bs4vqdgquaihg" path="res://sfx/EXPLDsgn_Explosion Impact_14.wav" id="3_cuegt"]
 [ext_resource type="Script" uid="uid://xwe7slciw4dk" path="res://scripts/health_component.gd" id="4_qhw0p"]
 [ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="5_n365g"]
-[ext_resource type="Script" uid="uid://b5nvsanyawkw0" path="res://scripts/hitbox_component.gd" id="6_cij6a"]
+[ext_resource type="Script" uid="uid://b5nvsanyawkw0" path="res://scenes/hitbox_component.gd" id="6_cij6a"]
 [ext_resource type="Script" uid="uid://bda1kmuhrcrqx" path="res://scripts/loot_component.gd" id="7_aptn8"]
 [ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="7_cij6a"]
 
