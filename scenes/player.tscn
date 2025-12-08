@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://calshek1ah73r"]
+[gd_scene load_steps=13 format=3 uid="uid://calshek1ah73r"]
 
 [ext_resource type="Script" uid="uid://jbg1g8oyn70k" path="res://scripts/player_controller.gd" id="1_g2els"]
 [ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="2_qhqgy"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://cl5c57oibjf8x" path="res://icon.svg" id="5_qlg0r"]
 [ext_resource type="AudioStream" uid="uid://b358e3csg303j" path="res://sfx/Gore Splat Stab Poke 03.wav" id="5_tuyoq"]
 [ext_resource type="AudioStream" uid="uid://jrod2amj0l1m" path="res://sfx/Whoosh Short Light 03.wav" id="6_fjrip"]
+[ext_resource type="Script" uid="uid://xwe7slciw4dk" path="res://scripts/health_component.gd" id="9_ur7pv"]
 
 [sub_resource type="Resource" id="Resource_dqkch"]
 script = ExtResource("2_qhqgy")
@@ -28,20 +29,20 @@ radius = 32.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_tuyoq"]
 radius = 100.0
 
-[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("sprite_ref", "audio_player", "magnet_area_shape") groups=["player"]]
+[node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("magnet_area_shape", "sprite_ref", "audio_player") groups=["player"]]
 collision_mask = 10
 script = ExtResource("1_g2els")
 stats = SubResource("Resource_dqkch")
 basic_attack_card = ExtResource("3_smehm")
 special_attack_card = ExtResource("3_qhqgy")
 current_attack_behavior = ExtResource("3_qhqgy")
+xp_growth_multiplier = 1.5
+magnet_area_shape = NodePath("MagnetArea/CollisionShape2D")
 sprite_ref = NodePath("Visuals/Sprite2D")
 body_shader = ExtResource("4_dqkch")
 audio_player = NodePath("SfxPlayer")
 sfx_hurt = ExtResource("5_tuyoq")
 sfx_dash = ExtResource("6_fjrip")
-xp_growth_multiplier = 1.5
-magnet_area_shape = NodePath("MagnetArea/CollisionShape2D")
 
 [node name="Visuals" type="Node2D" parent="."]
 
@@ -62,5 +63,8 @@ monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MagnetArea"]
 shape = SubResource("CircleShape2D_tuyoq")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("9_ur7pv")
 
 [connection signal="area_entered" from="MagnetArea" to="." method="_on_magnet_area_entered"]
