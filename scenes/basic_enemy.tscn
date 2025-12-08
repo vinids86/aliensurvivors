@@ -1,9 +1,14 @@
-[gd_scene load_steps=9 format=3 uid="uid://de6v0qxua2cuo"]
+[gd_scene load_steps=15 format=3 uid="uid://de6v0qxua2cuo"]
 
 [ext_resource type="Script" uid="uid://cala3b8irouy" path="res://scripts/basic_enemy.gd" id="1_md22f"]
 [ext_resource type="PackedScene" uid="uid://bblqterm66oas" path="res://scenes/xp_gem.tscn" id="2_cuegt"]
 [ext_resource type="Texture2D" uid="uid://cl5c57oibjf8x" path="res://icon.svg" id="2_fn5nn"]
 [ext_resource type="AudioStream" uid="uid://bs4vqdgquaihg" path="res://sfx/EXPLDsgn_Explosion Impact_14.wav" id="3_cuegt"]
+[ext_resource type="Script" uid="uid://xwe7slciw4dk" path="res://scripts/health_component.gd" id="4_qhw0p"]
+[ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="5_n365g"]
+[ext_resource type="Script" uid="uid://b5nvsanyawkw0" path="res://scripts/hitbox_component.gd" id="6_cij6a"]
+[ext_resource type="Script" uid="uid://bda1kmuhrcrqx" path="res://scripts/loot_component.gd" id="7_aptn8"]
+[ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="7_cij6a"]
 
 [sub_resource type="Shader" id="Shader_cuegt"]
 code = "shader_type canvas_item;
@@ -51,16 +56,34 @@ shader_parameter/custom_time = 0.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_ve544"]
 radius = 20.0
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_qhw0p"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_n365g"]
 radius = 22.0
 
-[node name="BasicEnemy" type="CharacterBody2D" groups=["enemy"]]
+[sub_resource type="Resource" id="Resource_aptn8"]
+script = ExtResource("7_cij6a")
+_base_values = {
+"area": 1.0,
+"cooldown": 1.0,
+"damage": 5.0,
+"max_health": 20.0,
+"move_speed": 180.0,
+"pickup_range": 100.0,
+"projectile_speed": 400.0
+}
+metadata/_custom_type_script = "uid://d4jbs7a2p4tcg"
+
+[node name="BasicEnemy" type="CharacterBody2D" node_paths=PackedStringArray("health_component", "movement_controller", "hitbox_component", "loot_component", "visual_sprite") groups=["enemy"]]
 collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_md22f")
-max_health = 10.0
-xp_value = 5.0
-xp_gem_scene = ExtResource("2_cuegt")
+health_component = NodePath("HealthComponent")
+movement_controller = NodePath("MovementController")
+hitbox_component = NodePath("HitboxComponent")
+loot_component = NodePath("LootComponent")
+visual_sprite = NodePath("Visuals/Sprite2D")
+max_health = null
+speed = null
+recoil_on_hit = null
 sfx_death = ExtResource("3_cuegt")
 
 [node name="Visuals" type="Node2D" parent="."]
@@ -73,8 +96,24 @@ texture = ExtResource("2_fn5nn")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_ve544")
 
-[node name="HitboxArea" type="Area2D" parent="."]
+[node name="HitboxComponent" type="Area2D" parent="."]
 collision_layer = 0
+script = ExtResource("6_cij6a")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxArea"]
-shape = SubResource("CircleShape2D_qhw0p")
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HitboxComponent"]
+shape = SubResource("CircleShape2D_n365g")
+
+[node name="HealthComponent" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("4_qhw0p")
+
+[node name="MovementController" type="Node" parent="." node_paths=PackedStringArray("body")]
+unique_name_in_owner = true
+script = ExtResource("5_n365g")
+body = NodePath("..")
+stats = SubResource("Resource_aptn8")
+
+[node name="LootComponent" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("7_aptn8")
+drop_scene = ExtResource("2_cuegt")

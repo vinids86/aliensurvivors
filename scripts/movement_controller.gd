@@ -62,13 +62,19 @@ func _process_timers(delta: float) -> void:
 # --- INTERFACE PÚBLICA ---
 
 # Chamado pelo Player no _physics_process quando no estado NORMAL
-func move_with_input(input_dir: Vector2) -> void:
+func move_with_input(input_dir: Vector2, speed_override: float = -1.0) -> void:
 	if is_dashing or is_knocked_back: return
 	
-	var speed = 200.0 # Default fallback
-	if stats: speed = stats.get_stat("move_speed", 200.0)
+	var final_speed = 200.0 # Valor padrão interno
 	
-	body.velocity = input_dir * speed
+	# Prioridade 1: Valor passado pelo Inimigo (Override)
+	if speed_override > 0:
+		final_speed = speed_override
+	# Prioridade 2: Sistema de Stats (usado pelo Player)
+	elif stats: 
+		final_speed = stats.get_stat("move_speed", 200.0)
+	
+	body.velocity = input_dir * final_speed
 	body.move_and_slide()
 
 # Chamado pelo Player para tentar dar Dash
