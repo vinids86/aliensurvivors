@@ -7,6 +7,10 @@ class_name EnemyVisuals extends Node
 @export var visual_body: CanvasItem # OBRIGATÓRIO: O nó ColorRect ou Sprite
 @export var trail_particles: GPUParticles2D # OBRIGATÓRIO: O nó de partículas
 
+# --- CONFIGURAÇÃO VISUAL ---
+@export_group("VFX Settings")
+@export var death_particle_amount: int = 25 # <--- NOVO: Configure isso no Inspector de cada Inimigo
+
 # --- CONFIGURAÇÃO DE ÁUDIO ---
 @export_group("Audio")
 @export var sfx_charge: AudioStream
@@ -112,7 +116,10 @@ func _spawn_death_particles() -> void:
 	
 	var explosion = GPUParticles2D.new()
 	explosion.emitting = false
-	explosion.amount = 25
+	
+	# USA O VALOR CONFIGURADO NO INSPECTOR
+	explosion.amount = death_particle_amount 
+	
 	explosion.lifetime = 0.6
 	explosion.one_shot = true
 	explosion.explosiveness = 1.0

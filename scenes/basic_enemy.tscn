@@ -8,7 +8,8 @@
 [ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="5_n365g"]
 [ext_resource type="Script" uid="uid://b5nvsanyawkw0" path="res://scenes/hitbox_component.gd" id="6_cij6a"]
 [ext_resource type="Script" uid="uid://bda1kmuhrcrqx" path="res://scripts/loot_component.gd" id="7_aptn8"]
-[ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="7_cij6a"]
+[ext_resource type="Script" uid="uid://bkbdxkfdr6rou" path="res://scripts/enemy_visuals.gd" id="9_hdnrd"]
+[ext_resource type="AudioStream" uid="uid://b358e3csg303j" path="res://sfx/Gore Splat Stab Poke 03.wav" id="10_2vl57"]
 
 [sub_resource type="Shader" id="Shader_cuegt"]
 code = "shader_type canvas_item;
@@ -59,32 +60,11 @@ radius = 20.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_n365g"]
 radius = 22.0
 
-[sub_resource type="Resource" id="Resource_aptn8"]
-script = ExtResource("7_cij6a")
-_base_values = {
-"area": 1.0,
-"cooldown": 1.0,
-"damage": 5.0,
-"max_health": 20.0,
-"move_speed": 180.0,
-"pickup_range": 100.0,
-"projectile_speed": 400.0
-}
-metadata/_custom_type_script = "uid://d4jbs7a2p4tcg"
-
-[node name="BasicEnemy" type="CharacterBody2D" node_paths=PackedStringArray("health_component", "movement_controller", "hitbox_component", "loot_component", "visual_sprite") groups=["enemy"]]
+[node name="BasicEnemy" type="CharacterBody2D" groups=["enemy"]]
 collision_layer = 2
 collision_mask = 9
 script = ExtResource("1_md22f")
-health_component = NodePath("HealthComponent")
-movement_controller = NodePath("MovementController")
-hitbox_component = NodePath("HitboxComponent")
-loot_component = NodePath("LootComponent")
-visual_sprite = NodePath("Visuals/Sprite2D")
-max_health = null
-speed = null
-recoil_on_hit = null
-sfx_death = ExtResource("3_cuegt")
+max_health = 10.0
 
 [node name="Visuals" type="Node2D" parent="."]
 
@@ -97,6 +77,7 @@ texture = ExtResource("2_fn5nn")
 shape = SubResource("CircleShape2D_ve544")
 
 [node name="HitboxComponent" type="Area2D" parent="."]
+unique_name_in_owner = true
 collision_layer = 0
 script = ExtResource("6_cij6a")
 
@@ -111,9 +92,16 @@ script = ExtResource("4_qhw0p")
 unique_name_in_owner = true
 script = ExtResource("5_n365g")
 body = NodePath("..")
-stats = SubResource("Resource_aptn8")
 
 [node name="LootComponent" type="Node" parent="."]
 unique_name_in_owner = true
 script = ExtResource("7_aptn8")
 drop_scene = ExtResource("2_cuegt")
+
+[node name="EnemyVisuals" type="Node" parent="." node_paths=PackedStringArray("visual_body")]
+unique_name_in_owner = true
+script = ExtResource("9_hdnrd")
+visual_body = NodePath("../Visuals/Sprite2D")
+death_particle_amount = 15
+sfx_hit = ExtResource("10_2vl57")
+sfx_death = ExtResource("3_cuegt")

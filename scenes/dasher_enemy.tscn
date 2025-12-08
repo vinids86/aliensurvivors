@@ -104,6 +104,7 @@ unique_name_in_owner = true
 script = ExtResource("9_7d06h")
 visual_body = NodePath("../ColorRect")
 trail_particles = NodePath("../TrailParticles")
+death_particle_amount = 70
 sfx_charge = ExtResource("4_bl5rs")
 sfx_dash = ExtResource("5_6ea2t")
 sfx_hit = ExtResource("3_xxycc")
