@@ -1,7 +1,7 @@
 class_name PlayerController extends CharacterBody2D
 
 ## Controlador principal da entidade Jogador.
-## Refatorado: Lógica Visual/Audio movida para PlayerVisuals.
+## Refatorado: Lógica de Coleta movida para CollectorComponent.
 
 # --- SINAIS ---
 signal on_attack_triggered(context_data: Dictionary) 
@@ -17,6 +17,7 @@ signal on_death()
 @onready var movement_controller: MovementController = %MovementController
 @onready var weapon_manager: WeaponManager = %WeaponManager
 @onready var player_visuals: PlayerVisuals = %PlayerVisuals
+@onready var collector_component: CollectorComponent = %CollectorComponent
 
 @export var stats: StatsConfig
 
@@ -24,7 +25,7 @@ signal on_death()
 @export_group("Physics Params")
 @export var self_knockback_force: float = 500.0
 @export var self_knockback_duration: float = 0.15 
-@export var magnet_area_shape: CollisionShape2D 
+# magnet_area_shape foi removido (agora é responsabilidade do CollectorComponent)
 
 # --- ESTADO INTERNO ---
 enum State { NORMAL, ATTACKING, KNOCKED_BACK, DASHING }
@@ -52,9 +53,9 @@ var _current_level: int:
 
 func _ready() -> void:
 	if not player_visuals: push_error("Player: %PlayerVisuals não encontrado!")
+	if not collector_component: push_error("Player: %CollectorComponent não encontrado!")
 	
 	_initialize_components()
-	_update_magnet_radius() 
 
 func _physics_process(delta: float) -> void:
 	_sync_state_with_components()
@@ -172,9 +173,6 @@ func _process_visual_updates(delta: float) -> void:
 	# 2. Animação Idle/Movimento (Wobble/Breath)
 	if _state == State.NORMAL:
 		player_visuals.update_idle_move_animation(delta, velocity.length())
-	else:
-		# Se não estiver normal, reseta cor do dash se necessário (handled inside visuals logic generally)
-		pass
 
 func _update_aim_to_input() -> void:
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -214,6 +212,10 @@ func _initialize_components() -> void:
 		if not experience_component.on_level_up.is_connected(_on_lvl_up):
 			experience_component.on_level_up.connect(_on_lvl_up)
 
+	# Collector Component
+	if collector_component:
+		collector_component.update_radius(stats.get_stat("pickup_range", 100.0))
+
 # ==============================================================================
 # PROXIES
 # ==============================================================================
@@ -227,9 +229,3 @@ func take_damage(amount: float, source: Node2D = null, force: float = 0.0) -> vo
 
 func add_xp(amount: float) -> void:
 	if experience_component: experience_component.add_xp(amount)
-
-func _update_magnet_radius() -> void:
-	if magnet_area_shape and magnet_area_shape.shape is CircleShape2D:
-		magnet_area_shape.shape.radius = stats.get_stat("pickup_range", 100.0)
-func _on_magnet_area_entered(area: Area2D) -> void:
-	if area.has_method("attract"): area.attract(self)
