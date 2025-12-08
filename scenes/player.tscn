@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://calshek1ah73r"]
+[gd_scene load_steps=16 format=3 uid="uid://calshek1ah73r"]
 
 [ext_resource type="Script" uid="uid://jbg1g8oyn70k" path="res://scripts/player_controller.gd" id="1_g2els"]
 [ext_resource type="Script" uid="uid://d4jbs7a2p4tcg" path="res://scripts/stats_config.gd" id="2_qhqgy"]
@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://xwe7slciw4dk" path="res://scripts/health_component.gd" id="9_ur7pv"]
 [ext_resource type="Script" uid="uid://b8fqfu2bbgmi6" path="res://scripts/experience_component.gd" id="10_y4r1p"]
 [ext_resource type="Script" uid="uid://8bly4o2y656c" path="res://scripts/movement_controller.gd" id="11_d2wvv"]
+[ext_resource type="Script" uid="uid://shosuodasynd" path="res://scripts/weapon_manager.gd" id="12_3v2ag"]
 
 [sub_resource type="Resource" id="Resource_dqkch"]
 script = ExtResource("2_qhqgy")
@@ -35,9 +36,6 @@ radius = 100.0
 collision_mask = 10
 script = ExtResource("1_g2els")
 stats = SubResource("Resource_dqkch")
-basic_attack_card = ExtResource("3_smehm")
-special_attack_card = ExtResource("3_qhqgy")
-current_attack_behavior = ExtResource("3_qhqgy")
 magnet_area_shape = NodePath("MagnetArea/CollisionShape2D")
 sprite_ref = NodePath("Visuals/Sprite2D")
 body_shader = ExtResource("4_dqkch")
@@ -78,5 +76,13 @@ unique_name_in_owner = true
 script = ExtResource("11_d2wvv")
 body = NodePath("..")
 stats = ExtResource("2_qhqgy")
+
+[node name="WeaponManager" type="Node" parent="." node_paths=PackedStringArray("body")]
+unique_name_in_owner = true
+script = ExtResource("12_3v2ag")
+body = NodePath("..")
+stats = ExtResource("2_qhqgy")
+basic_attack_card = ExtResource("3_smehm")
+special_attack_card = ExtResource("3_qhqgy")
 
 [connection signal="area_entered" from="MagnetArea" to="." method="_on_magnet_area_entered"]
