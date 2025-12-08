@@ -1,9 +1,10 @@
 class_name PlayerController extends CharacterBody2D
 
 ## Controlador principal da entidade Jogador.
-## Refatorado: Lógica de Coleta movida para CollectorComponent.
+## Arquitetura: Composição (Health, XP, Movement, Weapon, Visuals, Collector).
+## Responsabilidade: Orquestrar inputs e conectar sinais entre componentes.
 
-# --- SINAIS ---
+# --- SINAIS PÚBLICOS ---
 signal on_attack_triggered(context_data: Dictionary) 
 signal on_hit_received(source: Node, damage: float) 
 signal on_level_up(current_level: int)
@@ -12,6 +13,7 @@ signal on_dash_used(cooldown_time: float)
 signal on_death()
 
 # --- COMPONENTES (Unique Names) ---
+# Usamos % para acesso rápido na cena. Garanta que os nós tenham "Access as Unique Name".
 @onready var health_component: HealthComponent = %HealthComponent
 @onready var experience_component: ExperienceComponent = %ExperienceComponent
 @onready var movement_controller: MovementController = %MovementController
@@ -19,13 +21,13 @@ signal on_death()
 @onready var player_visuals: PlayerVisuals = %PlayerVisuals
 @onready var collector_component: CollectorComponent = %CollectorComponent
 
+# Configuração Global de Stats (Velocidade, Dano, HP Max, etc)
 @export var stats: StatsConfig
 
-# --- CONFIGURAÇÃO FÍSICA ---
+# --- CONFIGURAÇÃO FÍSICA ESPECÍFICA DO PLAYER ---
 @export_group("Physics Params")
 @export var self_knockback_force: float = 500.0
 @export var self_knockback_duration: float = 0.15 
-# magnet_area_shape foi removido (agora é responsabilidade do CollectorComponent)
 
 # --- ESTADO INTERNO ---
 enum State { NORMAL, ATTACKING, KNOCKED_BACK, DASHING }
@@ -34,7 +36,9 @@ var _state: State = State.NORMAL
 # Controle de Mira (Lógica de Jogo)
 var _aim_rotation: float = 0.0
 
-# Getters de Compatibilidade
+# --- GETTERS DE COMPATIBILIDADE ---
+# Mantidos para que sistemas externos (HUD, Managers) possam ler dados sem saber dos componentes.
+
 var _current_health: float: 
 	get: return health_component.current_health if health_component else 0.0
 
@@ -52,9 +56,7 @@ var _current_level: int:
 # ==============================================================================
 
 func _ready() -> void:
-	if not player_visuals: push_error("Player: %PlayerVisuals não encontrado!")
-	if not collector_component: push_error("Player: %CollectorComponent não encontrado!")
-	
+	_validate_dependencies()
 	_initialize_components()
 
 func _physics_process(delta: float) -> void:
@@ -63,10 +65,9 @@ func _physics_process(delta: float) -> void:
 	match _state:
 		State.NORMAL:       _state_logic_normal(delta)
 		State.ATTACKING:    _state_logic_attacking(delta)
-		State.DASHING:      pass 
-		State.KNOCKED_BACK: pass
+		State.DASHING:      pass # Gerido pelo MovementController
+		State.KNOCKED_BACK: pass # Gerido pelo MovementController
 	
-	# Atualiza a parte visual
 	_process_visual_updates(delta)
 
 # ==============================================================================
@@ -74,6 +75,7 @@ func _physics_process(delta: float) -> void:
 # ==============================================================================
 
 func _sync_state_with_components() -> void:
+	# Define a prioridade dos estados. Físico > Ação > Normal.
 	if movement_controller.is_knocked_back:
 		_state = State.KNOCKED_BACK
 	elif movement_controller.is_dashing:
@@ -91,19 +93,22 @@ func _state_logic_normal(_delta: float) -> void:
 	_check_combat_input()
 
 func _state_logic_attacking(_delta: float) -> void:
+	# Permite cancelar o ataque com Dash
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if _check_dash_input(input_dir): 
 		weapon_manager.cancel_attack()
 		return
+	
+	# Durante ataque, aplicamos "fricção" para parar o personagem
 	movement_controller.stop_movement()
 
 # ==============================================================================
-# ACTIONS & INPUT
+# INPUT HANDLING
 # ==============================================================================
 
 func _check_dash_input(input_dir: Vector2) -> bool:
 	if Input.is_action_just_pressed("ui_focus_next") or Input.is_action_just_pressed("dash"):
-		# Tenta Dash
+		# Tenta executar o Dash no componente de movimento
 		if movement_controller.attempt_dash(input_dir, _aim_rotation):
 			on_dash_used.emit(movement_controller.dash_cooldown)
 			
@@ -121,13 +126,13 @@ func _check_combat_input() -> void:
 		type = "special"
 	
 	if type != "":
-		# Mira instantânea antes do ataque
+		# Atualiza a mira para a direção do input antes de disparar
 		_update_aim_to_input()
 		var aim_dir = Vector2.RIGHT.rotated(_aim_rotation)
 		weapon_manager.attempt_attack(type, aim_dir)
 
 # ==============================================================================
-# COMPONENT EVENT HANDLERS
+# EVENT HANDLERS (Sinais dos Componentes)
 # ==============================================================================
 
 func _on_weapon_windup(duration: float) -> void:
@@ -135,10 +140,10 @@ func _on_weapon_windup(duration: float) -> void:
 		player_visuals.play_attack_windup(duration)
 
 func _on_weapon_executed(recoil_dir: Vector2) -> void:
-	# Feedback Físico
+	# 1. Aplica Recuo Físico
 	movement_controller.apply_knockback(recoil_dir * self_knockback_force, self_knockback_duration)
 	
-	# Feedback Visual
+	# 2. Feedback Visual
 	if player_visuals:
 		player_visuals.play_attack_execution()
 
@@ -147,12 +152,14 @@ func _on_health_dmg(amount: float, source: Node) -> void:
 	if player_visuals:
 		player_visuals.play_hit_effect()
 	
-	# Sinal de Lógica
+	# Notifica lógica do jogo (GameManager, UI)
 	on_hit_received.emit(source, amount)
 
 func _on_lvl_up(lvl: int) -> void:
 	on_level_up.emit(lvl)
-	if health_component: health_component.heal_percent(0.2)
+	# Regra de Jogo: Cura 20% ao subir de nível
+	if health_component: 
+		health_component.heal_percent(0.2)
 
 # ==============================================================================
 # VISUAL UPDATE LOOP
@@ -161,16 +168,15 @@ func _on_lvl_up(lvl: int) -> void:
 func _process_visual_updates(delta: float) -> void:
 	if not player_visuals: return
 	
-	# 1. Rotação (Look at)
-	# Não atualiza rotação visual durante ataques ou knockback (trava mira)
+	# 1. Atualiza Rotação (Olhar)
+	# Travamos a rotação durante ataques ou knockback para manter a mira/impacto
 	if _state != State.ATTACKING and _state != State.KNOCKED_BACK:
 		if velocity.length() > 0:
 			_aim_rotation = lerp_angle(_aim_rotation, velocity.angle(), 15 * delta)
 		
-		# Envia rotação calculada para o componente visual
 		player_visuals.update_rotation(_aim_rotation, delta)
 	
-	# 2. Animação Idle/Movimento (Wobble/Breath)
+	# 2. Animação de "Respiração/Wobble" (Apenas em estado normal)
 	if _state == State.NORMAL:
 		player_visuals.update_idle_move_animation(delta, velocity.length())
 
@@ -179,25 +185,36 @@ func _update_aim_to_input() -> void:
 	if input_dir != Vector2.ZERO:
 		_aim_rotation = input_dir.angle()
 	
-	# Força atualização visual instantânea
+	# Força o visual a rotacionar instantaneamente para a nova mira
 	if player_visuals:
 		player_visuals.set_rotation_instant(_aim_rotation)
 
 # ==============================================================================
-# SETUP
+# SETUP & VALIDATION
 # ==============================================================================
 
+func _validate_dependencies() -> void:
+	# Erros críticos que impedem o funcionamento
+	if not movement_controller: push_error("Player: %MovementController ausente!")
+	if not health_component: push_error("Player: %HealthComponent ausente!")
+	if not weapon_manager: push_error("Player: %WeaponManager ausente!")
+	
+	# Avisos não-críticos (o jogo roda, mas sem feedback)
+	if not player_visuals: push_warning("Player: %PlayerVisuals ausente! Feedback visual desativado.")
+	if not collector_component: push_warning("Player: %CollectorComponent ausente! Coleta desativada.")
+
 func _initialize_components() -> void:
+	# Garante que Stats existe
 	if not stats: stats = StatsConfig.new()
 	
-	# Weapon Manager
+	# Inicializa Weapon Manager
 	if weapon_manager:
 		if not weapon_manager.on_attack_windup.is_connected(_on_weapon_windup):
 			weapon_manager.on_attack_windup.connect(_on_weapon_windup)
 		if not weapon_manager.on_attack_executed.is_connected(_on_weapon_executed):
 			weapon_manager.on_attack_executed.connect(_on_weapon_executed)
 	
-	# Health Component
+	# Inicializa Health Component
 	if health_component:
 		if not health_component.on_damage_taken.is_connected(_on_health_dmg):
 			health_component.on_damage_taken.connect(_on_health_dmg)
@@ -205,26 +222,31 @@ func _initialize_components() -> void:
 			health_component.on_death.connect(func(): on_death.emit())
 		health_component.initialize(stats.get_stat("max_health", 100.0))
 
-	# XP Component
+	# Inicializa XP Component
 	if experience_component:
 		if not experience_component.on_xp_collected.is_connected(func(a): on_xp_collected.emit(a)):
 			experience_component.on_xp_collected.connect(func(a): on_xp_collected.emit(a))
 		if not experience_component.on_level_up.is_connected(_on_lvl_up):
 			experience_component.on_level_up.connect(_on_lvl_up)
 
-	# Collector Component
+	# Inicializa Collector Component
 	if collector_component:
 		collector_component.update_radius(stats.get_stat("pickup_range", 100.0))
 
 # ==============================================================================
-# PROXIES
+# PROXY METHODS (API Pública para outros objetos)
 # ==============================================================================
 
 func take_damage(amount: float, source: Node2D = null, force: float = 0.0) -> void:
+	# Verifica invulnerabilidade (Dash)
 	if movement_controller.is_dashing and movement_controller.dash_invulnerability: return
+	
+	# Aplica Knockback se houver fonte e força
 	if source and force > 0:
 		var dir = (global_position - source.global_position).normalized()
 		movement_controller.apply_knockback(dir * force, 0.2)
+	
+	# Aplica Dano
 	if health_component: health_component.take_damage(amount, source)
 
 func add_xp(amount: float) -> void:
