@@ -1,29 +1,29 @@
 class_name PlayerController extends CharacterBody2D
 
 ## Controlador principal da entidade Jogador.
-## Refatorado: Lógica de Vida extraída para HealthComponent.
+## Otimizado: Usa Unique Names (%) para acessar componentes automaticamente.
 
 # --- SINAIS ---
 signal on_attack_triggered(context_data: Dictionary)
-# Mantidos para compatibilidade externa (HUD/GameManager), mas agora reagem ao componente
+# Mantidos para compatibilidade externa
 signal on_hit_received(source: Node, damage: float) 
 signal on_level_up(current_level: int)
 signal on_xp_collected(amount: float)
 signal on_dash_used(cooldown_time: float)
 signal on_death()
 
-# --- CONFIGURAÇÃO E ARQUITETURA ---
-@export_group("Architecture")
+# --- ARQUITETURA E COMPONENTES ---
+# Usamos @onready com % para buscar automaticamente os nós marcados como Unique na cena.
+# Isso elimina a necessidade de arrastar manualmente no Inspector.
+@onready var health_component: HealthComponent = %HealthComponent
+@onready var experience_component: ExperienceComponent = %ExperienceComponent
+
 @export var stats: StatsConfig
 
 @export_group("Combat Arsenal")
 @export var basic_attack_card: AttackBehaviorCard
 @export var special_attack_card: AttackBehaviorCard
 @export var current_attack_behavior: AttackBehaviorCard # Legacy
-
-@export_group("Progression")
-@export var xp_growth_multiplier: float = 1.1
-@export var xp_flat_increase: float = 25.0
 
 # --- CONFIGURAÇÃO FÍSICA ---
 @export_group("Movement & Physics")
@@ -55,9 +55,6 @@ signal on_death()
 @export var sfx_hurt: AudioStream
 @export var sfx_dash: AudioStream
 
-# --- COMPONENTES ---
-var _health_comp: HealthComponent
-
 # --- ESTADO INTERNO ---
 enum State { NORMAL, ATTACKING, KNOCKED_BACK, DASHING }
 var _state: State = State.NORMAL
@@ -68,11 +65,6 @@ var _timers = {
 	"dash_cooldown": 0.0,
 	"dash_duration": 0.0
 }
-
-# Dados de RPG (XP continua aqui por enquanto)
-var _current_xp: float = 0.0
-var _current_level: int = 1
-var _xp_to_next_level: float = 100.0
 
 # Variaveis de Controle Físico/Visual
 var _knockback_velocity: Vector2 = Vector2.ZERO
@@ -85,18 +77,27 @@ var _tween_body: Tween
 var _shader_time_accum: float = 0.0
 var _current_agitation: float = 1.0
 
-# Acessores de compatibilidade (para o HUD que lê _current_health)
+# Acessores de Compatibilidade (Getters Seguros)
 var _current_health: float:
-	get: return _health_comp.current_health if _health_comp else 0.0
+	get: return health_component.current_health if health_component else 0.0
+var _current_xp: float:
+	get: return experience_component.current_xp if experience_component else 0.0
+var _xp_to_next_level: float:
+	get: return experience_component.xp_required if experience_component else 100.0
+var _current_level: int:
+	get: return experience_component.current_level if experience_component else 1
 
 # ==============================================================================
 # LIFECYCLE
 # ==============================================================================
 
 func _ready() -> void:
+	# Validação crítica: Se esqueceu de marcar como Unique (%) na cena, avisa.
+	if not health_component: push_error("Player: Nó %HealthComponent não encontrado! Marque-o como Unique Name na cena.")
+	if not experience_component: push_error("Player: Nó %ExperienceComponent não encontrado! Marque-o como Unique Name na cena.")
+	
 	_validate_dependencies()
-	_initialize_components() # Inicializa o HealthComponent
-	_initialize_stats()
+	_initialize_components()
 	_initialize_visuals()
 	_update_magnet_radius() 
 
@@ -118,21 +119,26 @@ func _physics_process(delta: float) -> void:
 # ==============================================================================
 
 func _initialize_components() -> void:
-	# Instancia o componente via código para não precisar editar a cena agora
-	_health_comp = HealthComponent.new()
-	add_child(_health_comp)
-	
-	# Conecta os sinais do componente aos métodos do Player
-	_health_comp.on_damage_taken.connect(_on_health_damage_taken)
-	_health_comp.on_death.connect(_on_health_died)
-	
-	# Inicializa com o valor dos stats
-	var max_hp = 100.0
-	if stats: max_hp = stats.get_stat("max_health", 100.0)
-	_health_comp.initialize(max_hp)
-
-func _initialize_stats() -> void:
+	# Configura Stats Iniciais
 	if not stats: stats = StatsConfig.new()
+	
+	# Inicializa HealthComponent existente (agora pego via %UniqueName)
+	if health_component:
+		if not health_component.on_damage_taken.is_connected(_on_health_damage_taken):
+			health_component.on_damage_taken.connect(_on_health_damage_taken)
+		if not health_component.on_death.is_connected(_on_health_died):
+			health_component.on_death.connect(_on_health_died)
+		
+		# Sincroniza com StatsConfig
+		health_component.initialize(stats.get_stat("max_health", 100.0))
+	
+	# Inicializa ExperienceComponent existente (agora pego via %UniqueName)
+	if experience_component:
+		# Conexão segura para evitar duplicidade se o _ready rodar de novo
+		if not experience_component.on_xp_collected.is_connected(func(amount): on_xp_collected.emit(amount)):
+			experience_component.on_xp_collected.connect(func(amount): on_xp_collected.emit(amount))
+		if not experience_component.on_level_up.is_connected(_on_comp_level_up):
+			experience_component.on_level_up.connect(_on_comp_level_up)
 	
 	# Fallback para attack card antigo
 	if not basic_attack_card and current_attack_behavior:
@@ -140,41 +146,58 @@ func _initialize_stats() -> void:
 
 func _validate_dependencies() -> void:
 	if not audio_player: push_warning("Player: AudioPlayer não atribuído.")
-	if not stats: push_error("Player: StatsConfig ausente!")
+	# Removidos os push_error de componentes pois o @onready já lida (e o check no _ready complementa)
 
 # ==============================================================================
-# HEALTH HANDLERS (Conectados ao Componente)
+# HEALTH HANDLERS
 # ==============================================================================
 
-# Interface pública chamada pelos inimigos
 func take_damage(amount: float, source_node: Node2D = null, knockback_force: float = 0.0) -> void:
-	if _state == State.DASHING and dash_invulnerability:
-		return 
+	if _state == State.DASHING and dash_invulnerability: return 
 	
-	# Aplica knockback físico imediatamente (responsabilidade do PlayerController)
 	if source_node and knockback_force > 0:
 		var knock_dir = (global_position - source_node.global_position).normalized()
 		apply_impulse(knock_dir, knockback_force, 0.2)
 	
-	# Delega a lógica de números para o componente
-	_health_comp.take_damage(amount, source_node)
+	if health_component:
+		health_component.take_damage(amount, source_node)
 
 func heal(amount: float) -> void:
-	_health_comp.heal(amount)
+	if health_component:
+		health_component.heal(amount)
 
-# Callbacks dos Sinais do HealthComponent
 func _on_health_damage_taken(amount: float, source: Node) -> void:
-	# Feedback Visual e Sonoro
 	_visual_flash(color_damage, 0.2)
 	_play_sfx(sfx_hurt)
-	
-	# Retransmite para UI/GameManager
 	on_hit_received.emit(source, amount)
 
 func _on_health_died() -> void:
 	on_death.emit()
 	set_physics_process(false)
-	# Game Over logic...
+
+# ==============================================================================
+# PROGRESSION HANDLERS
+# ==============================================================================
+
+func add_xp(amount: float) -> void:
+	if experience_component:
+		experience_component.add_xp(amount)
+
+func _on_comp_level_up(new_level: int) -> void:
+	# Retransmite sinal
+	on_level_up.emit(new_level)
+	# Cura 20% ao subir de nível
+	if health_component:
+		health_component.heal_percent(0.2)
+
+func _update_magnet_radius() -> void:
+	if magnet_area_shape and magnet_area_shape.shape is CircleShape2D:
+		var range_val = stats.get_stat("pickup_range", 100.0)
+		magnet_area_shape.shape.radius = range_val
+
+func _on_magnet_area_entered(area: Area2D) -> void:
+	if area.has_method("attract"):
+		area.attract(self)
 
 # ==============================================================================
 # STATE MACHINE LOGIC
@@ -299,32 +322,6 @@ func _finish_dash() -> void:
 	_state = State.NORMAL
 	velocity = _dash_direction * stats.get_stat("move_speed", 200.0)
 	_visual_dash_end()
-
-# ==============================================================================
-# PROGRESSION (XP)
-# ==============================================================================
-
-func add_xp(amount: float) -> void:
-	_current_xp += amount
-	on_xp_collected.emit(amount)
-	if _current_xp >= _xp_to_next_level: _level_up()
-
-func _level_up() -> void:
-	_current_xp -= _xp_to_next_level
-	_current_level += 1
-	_xp_to_next_level = (_xp_to_next_level * xp_growth_multiplier) + xp_flat_increase
-	
-	on_level_up.emit(_current_level)
-	# Cura usando o componente
-	_health_comp.heal_percent(0.2) 
-
-func _update_magnet_radius() -> void:
-	if magnet_area_shape and magnet_area_shape.shape is CircleShape2D:
-		var range_val = stats.get_stat("pickup_range", 100.0)
-		magnet_area_shape.shape.radius = range_val
-
-func _on_magnet_area_entered(area: Area2D) -> void:
-	if area.has_method("attract"): area.attract(self)
 
 # ==============================================================================
 # VISUALS & UTILS
