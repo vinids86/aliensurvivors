@@ -20,9 +20,30 @@ var _is_collected: bool = false
 var _random_rotation_speed: float = 0.0 # Cada gema gira numa velocidade única
 
 func _ready() -> void:
-	# Juice: Randomiza para que as gemas não pulsem todas sincronizadas (efeito robótico)
+	# Juice: Randomiza para que as gemas não pulsem todas sincronizadas
 	_wobble_time = randf() * 10.0
-	_random_rotation_speed = randf_range(-2.0, 2.0) # Algumas giram pra esq, outras pra dir
+	_random_rotation_speed = randf_range(-2.0, 2.0)
+	
+	# --- VISUAL DAS PARTÍCULAS (Aura Permanente) ---
+	# Gera a textura suave assim que nasce para ficar bonita orbitando
+	if particles_ref:
+		var tex = GradientTexture2D.new()
+		tex.width = 32 
+		tex.height = 32
+		tex.fill = GradientTexture2D.FILL_RADIAL
+		tex.fill_from = Vector2(0.5, 0.5)
+		tex.fill_to = Vector2(0.5, 0.0) 
+		
+		var grad = Gradient.new()
+		# Branco opaco -> Transparente (Aura suave)
+		grad.colors = [Color(1, 1, 1, 0.6), Color(1, 1, 1, 0)]
+		tex.gradient = grad
+		
+		particles_ref.texture = tex
+		
+		# Garante que as partículas de "aura" já comecem visíveis se configuradas para loop
+		# Se o CPUParticles2D estiver configurado como 'one_shot = false' no editor, isso já funciona.
+	# ------------------------------------
 	
 	body_entered.connect(_on_body_entered)
 	
@@ -57,19 +78,19 @@ func _handle_magnet_movement(delta: float) -> void:
 	_velocity += steering
 	position += _velocity * delta
 	
-	# Durante o voo, a gema aponta para onde vai e estica (efeito de velocidade)
+	# Durante o voo, a gema aponta para onde vai e estica
 	rotation = _velocity.angle()
-	scale = Vector2(1.3, 0.7) # Alongada
+	scale = Vector2(1.3, 0.7)
 
 func _handle_idle_animation(delta: float) -> void:
 	_wobble_time += delta
 	
-	# 1. Rotação Constante (Energia contida)
+	# 1. Rotação Constante
 	rotation += _random_rotation_speed * delta
 	
-	# 2. Pulso de Respiração (Senoide)
+	# 2. Pulso de Respiração
 	var pulse = sin(_wobble_time * 4.0) * 0.1
-	scale = Vector2.ONE * (0.9 + pulse) # Oscila entre 0.8 e 1.0
+	scale = Vector2.ONE * (0.9 + pulse)
 
 func _on_body_entered(body: Node2D) -> void:
 	if _is_collected: return
@@ -89,7 +110,10 @@ func _play_collection_effects() -> void:
 		audio_ref.pitch_scale = randf_range(0.9, 1.1)
 		audio_ref.play()
 	
+	# Na coleta, podemos explodir as partículas (forçar emissão extra se quiser)
 	if particles_ref:
+		# Se já estava emitindo (aura), talvez queira aumentar a explosão aqui
+		# particles_ref.amount = 20 # Exemplo de boost
 		particles_ref.emitting = true
 	
 	var wait_time = 0.5 
